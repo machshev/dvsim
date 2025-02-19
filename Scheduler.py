@@ -47,7 +47,7 @@ def get_next_item(arr, index):
 
 
 class Scheduler:
-    """An object that runs one or more Deploy items"""
+    """An object that runs one or more Deploy items."""
 
     def __init__(self, items, launcher_cls, interactive):
         self.items = items
@@ -85,6 +85,7 @@ class Scheduler:
         self._failed = {}
         self._killed = {}
         self._total = {}
+        self._requeued_count = 0
         self.last_target_polled_idx = -1
         self.last_item_polled_idx = {}
         for target in self._scheduled:
@@ -100,10 +101,10 @@ class Scheduler:
             width = len(str(self._total[target]))
             field_fmt = f"{{:0{width}d}}"
             self.msg_fmt = (
-                f"Q: {field_fmt}, D: {field_fmt}, P: {field_fmt}, "
+                f"Q: {field_fmt}, D: {field_fmt}, R: {field_fmt}, P: {field_fmt}, "
                 f"F: {field_fmt}, K: {field_fmt}, T: {field_fmt}"
             )
-            msg = self.msg_fmt.format(0, 0, 0, 0, 0, self._total[target])
+            msg = self.msg_fmt.format(0, 0, 0, 0, 0, 0, self._total[target])
             self.status_printer.init_target(target=target, msg=msg)
 
         # A map from the Deploy objects tracked by this class to their
@@ -424,9 +425,7 @@ class Scheduler:
         # weights.
         sum_weight = 0
         slots_filled = 0
-        total_weight = sum(
-            self._queued[t][0].weight for t in self._queued if self._queued[t]
-        )
+        total_weight = sum(self._queued[t][0].weight for t in self._queued if self._queued[t])
 
         for target in self._scheduled:
             if not self._queued[target]:
@@ -490,7 +489,8 @@ class Scheduler:
                 except LauncherBusy as err:
                     log.error("Launcher busy: %s", err)
 
-                    self._queued[target].push(item)
+                    self._queued[target].append(item)
+                    self._requeued_count += 1
 
                     log.log(
                         VERBOSE,
@@ -546,6 +546,7 @@ class Scheduler:
             msg = self.msg_fmt.format(
                 len(self._queued[target]),
                 len(self._running[target]),
+                self._requeued_count,
                 len(self._passed[target]),
                 len(self._failed[target]),
                 len(self._killed[target]),
