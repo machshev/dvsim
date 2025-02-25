@@ -350,7 +350,7 @@ def find_and_substitute_wildcards(sub_dict, full_dict, ignored_wildcards=None, i
     return sub_dict
 
 
-def md_results_to_html(title, css_file, md_text):
+def md_results_to_html(title: str, css_file: Path | str, md_text: str) -> str:
     """Convert results in md format to html. Add a little bit of styling."""
     html_text = "<!DOCTYPE html>\n"
     html_text += '<html lang="en">\n'
@@ -365,8 +365,13 @@ def md_results_to_html(title, css_file, md_text):
     html_text += "</body>\n"
     html_text += "</html>\n"
     html_text = htmc_color_pc_cells(html_text)
+
     # this function converts css style to inline html style
-    return transform(html_text, external_styles=css_file, cssutils_logging_level=log.ERROR)
+    return transform(
+        html_text,
+        css_text=Path(css_file).read_text(),
+        cssutils_logging_level=log.ERROR,
+    )
 
 
 def htmc_color_pc_cells(text):
