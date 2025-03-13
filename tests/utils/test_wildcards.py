@@ -5,6 +5,8 @@
 """pytest-based testing for functions in utils.py."""
 
 import os
+from collections.abc import Mapping
+from pathlib import Path
 
 import pytest
 from hamcrest import assert_that, calling, equal_to, raises
@@ -32,7 +34,7 @@ class TestSubstWildcards:
                     "b": True,
                     "c": 42,
                     "d": ["{b}", 10],
-                    "e": "path/to/somewhere",
+                    "e": Path("./path/to/somewhere"),
                 },
                 "a, 1, 42, 1 10, path/to/somewhere",
             ),
@@ -87,7 +89,7 @@ class TestSubstWildcards:
         assert_that(
             subst_wildcards(
                 var=input_str,
-                mdict=values,
+                wildcard_values=values,
                 ignore_error=True,
             ),
             equal_to(expected),
@@ -124,7 +126,7 @@ class TestSubstWildcards:
         assert_that(
             subst_wildcards(
                 var=input_str,
-                mdict=values,
+                wildcard_values=values,
                 ignored_wildcards=ignored,
                 ignore_error=False,
             ),
@@ -140,32 +142,32 @@ class TestSubstWildcards:
                 "{biggles} {b}",
                 {"b": "bee"},
                 False,
-                SystemExit,
-                "1",
+                ValueError,
+                "unknown wildcard, '{biggles}'",
             ),
             # wildcard with non string value
             (
                 "{a}",
                 {"a": object()},
                 False,
-                SystemExit,
-                "1",
+                ValueError,
+                "not of a supported type",
             ),
             # Circular recursion
             (
                 "{a}",
                 {"a": "{b}", "b": "{a}"},
                 False,
-                SystemExit,
-                "1",
+                ValueError,
+                "circular expansion of wildcard '{a}'",
             ),
             # Circular recursion - even with ignore_error=True
             (
                 "{a}",
                 {"a": "{b}", "b": "{a}"},
                 True,
-                SystemExit,
-                "1",
+                ValueError,
+                "circular expansion of wildcard '{a}'",
             ),
         ],
     )
@@ -181,11 +183,10 @@ class TestSubstWildcards:
         assert_that(
             calling(subst_wildcards).with_args(
                 var=var,
-                mdict=wildcard_values,
+                wildcard_values=wildcard_values,
                 ignore_error=ignore_error,
             ),
             raises(exception, match),
-            reason=match,
         )
 
 
@@ -197,8 +198,26 @@ class TestFindAndSubstituteWildcards:
         ("obj", "wildcards", "expected"),
         [
             # Empty objects
+            ((), {}, []),
             ([], {}, []),
+            ([(), ()], {}, [[], []]),
+            ({"a": ()}, {}, {"a": []}),
             ({"a": {}}, {}, {"a": {}}),
+            # unknown objects are left as they are
+            (1, {}, 1),
+            # String objects can still be passed
+            ("foo {x} baz", {"x": "bar"}, "foo bar baz"),
+            # list elements are substituted
+            (
+                ["foo {x} baz", "other {x}"],
+                {"x": "bar"},
+                ["foo bar baz", "other bar"],
+            ),
+            (
+                ["{x}", ["foo {x} baz"], ["other {x}"]],
+                {"x": "bar"},
+                ["bar", ["foo bar baz"], ["other bar"]],
+            ),
             # map values are substituted
             ({"a": "{x}"}, {"x": "bar"}, {"a": "bar"}),
             (
@@ -216,8 +235,59 @@ class TestFindAndSubstituteWildcards:
         """Check that wildcards are substituted as expected."""
         assert_that(
             find_and_substitute_wildcards(
-                sub_dict=obj,
-                full_dict=wildcards,
+                obj=obj,
+                wildcard_values=wildcards,
+            ),
+            equal_to(expected),
+        )
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        ("obj", "expected"),
+        [
+            # Empty objects
+            ({}, {}),
+            ({"a": ()}, {"a": []}),
+            ({"a": {}}, {"a": {}}),
+            # single level substitutions
+            (
+                {"a": "foo {x} baz", "x": "bar"},
+                {"a": "foo bar baz", "x": "bar"},
+            ),
+            (
+                {"a": "foo {x} baz", "x": "{eval_cmd} echo bar"},
+                {"a": "foo bar baz", "x": "bar"},
+            ),
+            (
+                {"a": "foo {x} baz {y}", "x": "bar", "y": 1},
+                {"a": "foo bar baz 1", "x": "bar", "y": 1},
+            ),
+            (
+                {"a": "foo {x} baz {y}", "x": "bar {y}", "y": 1},
+                {"a": "foo bar 1 baz 1", "x": "bar 1", "y": 1},
+            ),
+            # Two level substitutions
+            (
+                {"a": ["foo {x}", "baz {y}"], "x": "bar {y}", "y": 1},
+                {"a": ["foo bar 1", "baz 1"], "x": "bar 1", "y": 1},
+            ),
+        ],
+    )
+    def test_self_substitution(
+        obj: Mapping,
+        expected: object,
+    ) -> None:
+        """Check that a dictionary can be passed as both object and wildcards.
+
+        DVSim config is treated as both the object and the wildcard mapping.
+        This causes some confusion in parsing and it might be good to provide
+        some clarity in this area. However for the moment this is a required
+        feature for compatibility.
+        """
+        assert_that(
+            find_and_substitute_wildcards(
+                obj=obj,
+                wildcard_values=obj,
             ),
             equal_to(expected),
         )

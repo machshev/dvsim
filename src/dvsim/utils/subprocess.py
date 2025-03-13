@@ -25,7 +25,8 @@ def run_cmd(cmd: str) -> str:
 
 def run_cmd_with_timeout(
     cmd: str,
-    timeout: int = -1,
+    *,
+    timeout: float | None = None,
     exit_on_failure: bool = True,
 ) -> tuple[str, int]:
     """Run a command with a specified timeout.
@@ -44,19 +45,21 @@ def run_cmd_with_timeout(
     # If timeout is set, poll for the process to finish until timeout
     result = ""
     status = -1
-    if timeout == -1:
-        p.wait()
-    else:
+    if timeout:
         start = time.time()
         while time.time() - start < timeout:
-            if p.poll() is not None:
+            if p.poll():
                 break
+
             time.sleep(0.01)
+    else:
+        p.wait()
 
     # Capture output and status if cmd exited, else kill it
-    if p.poll() is not None:
+    if p.poll():
         result = p.communicate()[0]
         status = p.returncode
+
     else:
         log.error('cmd "%s" timed out!', cmd)
         p.kill()

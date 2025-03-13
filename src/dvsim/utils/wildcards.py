@@ -1,16 +1,20 @@
 # Copyright lowRISC contributors (OpenTitan project).
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
-"""Utility functions common across dvsim."""
+"""Wildcard substitution in strings within data structures.
+
+DVSim configuration relies heavily on wildcard based substitutions and dynamic
+templated config. The helper functions in this module implement the templating
+functionality in DVSim config values.
+"""
 
 import fnmatch
-import logging as log
 import os
 import re
-import sys
-from collections import OrderedDict
 from collections.abc import (
     Iterable,
+    Mapping,
+    MutableMapping,
     Sequence,
 )
 from pathlib import Path
@@ -38,7 +42,7 @@ def match_items(items: Iterable[str], pattern: str) -> Sequence[str]:
     return fnmatch.filter(items, pattern)
 
 
-def _stringify_wildcard_value(value):
+def _stringify_wildcard_value(*, value: WildcardValueType | Iterable[WildcardValueType]) -> str:
     """Make sense of a wildcard value as a string (see subst_wildcards).
 
     Strings are passed through unchanged. Integer or boolean values are printed
@@ -46,28 +50,30 @@ def _stringify_wildcard_value(value):
     separated by spaces.
 
     """
-    if type(value) is str:
+    if isinstance(value, str):
         return value
 
-    if type(value) in [bool, int]:
+    if isinstance(value, bool | int):
         return str(int(value))
 
-    try:
-        return " ".join(_stringify_wildcard_value(x) for x in value)
-    except TypeError:
-        msg = f"Wildcard had value {value!r} which is not of a supported type."
-        raise ValueError(
-            msg,
-        )
+    if isinstance(value, Path):
+        return str(value)
+
+    if isinstance(value, Iterable):
+        return " ".join(_stringify_wildcard_value(value=x) for x in value)
+
+    msg = f"Wildcard had value {value!r} which is not of a supported type."
+    raise ValueError(msg)
 
 
 def _subst_wildcards(
-    var,
-    mdict,
-    ignored,
-    ignore_error,
-    seen,
-):
+    var: str,
+    *,
+    wildcard_values: Mapping,
+    ignored_wildcards: Iterable[str],
+    seen: list[str],
+    ignore_error: bool = False,
+) -> tuple[str, bool]:
     """Worker function for subst_wildcards.
 
     seen is a list of wildcards that have been expanded on the way to this call
@@ -97,7 +103,7 @@ def _subst_wildcards(
         name = match.group(1)
 
         # If the name should be ignored, skip over it.
-        if name in ignored:
+        if name in ignored_wildcards:
             idx += match.end()
             continue
 
@@ -113,10 +119,10 @@ def _subst_wildcards(
         if name == "eval_cmd":
             cmd = _subst_wildcards(
                 right_str[match.end() :],
-                mdict,
-                ignored,
-                ignore_error,
-                seen,
+                wildcard_values=wildcard_values,
+                ignored_wildcards=ignored_wildcards,
+                ignore_error=ignore_error,
+                seen=seen,
             )[0]
 
             # Are there any wildcards left in cmd? If not, we can run the
@@ -130,19 +136,17 @@ def _subst_wildcards(
             # ignore_error is True.
             bad_names = False
             if not ignore_error:
-                for cmd_match in cmd_matches:
-                    if cmd_match.group(1) not in ignored:
-                        bad_names = True
+                bad_names = any(match.group(1) not in ignored_wildcards for match in cmd_matches)
 
-            if bad_names:
-                msg = (
-                    "Cannot run eval_cmd because the command "
-                    f"expands to {cmd!r}, which still contains a "
-                    "wildcard."
-                )
-                raise ValueError(
-                    msg,
-                )
+                if bad_names:
+                    msg = (
+                        "Cannot run eval_cmd because the command "
+                        f"expands to {cmd!r}, which still contains a "
+                        "wildcard."
+                    )
+                    raise ValueError(
+                        msg,
+                    )
 
             # We can't run the command (because it still has wildcards), but we
             # don't want to report an error either because ignore_error is true
@@ -150,8 +154,8 @@ def _subst_wildcards(
             # partially evaluated version.
             return (var[:idx] + right_str[: match.end()] + cmd, True)
 
-        # Otherwise, look up name in mdict.
-        value = mdict.get(name)
+        # Otherwise, look up name in wildcard_values.
+        value = wildcard_values.get(name)
 
         # If the value isn't set, check the environment
         if value is None:
@@ -168,11 +172,17 @@ def _subst_wildcards(
                 msg,
             )
 
-        value = _stringify_wildcard_value(value)
+        value = _stringify_wildcard_value(value=value)
 
         # Do any recursive expansion of value, adding name to seen (to avoid
         # circular recursion).
-        value, saw_err = _subst_wildcards(value, mdict, ignored, ignore_error, [*seen, name])
+        value, saw_err = _subst_wildcards(
+            value,
+            wildcard_values=wildcard_values,
+            ignored_wildcards=ignored_wildcards,
+            ignore_error=ignore_error,
+            seen=[*seen, name],
+        )
 
         # Replace the original match with the result and go around again. If
         # saw_err, increment idx past what we just inserted.
@@ -183,14 +193,15 @@ def _subst_wildcards(
 
 
 def subst_wildcards(
-    var,
-    mdict,
-    ignored_wildcards=None,
-    ignore_error=False,
-):
+    var: str,
+    wildcard_values: Mapping[str, object],
+    ignored_wildcards: Iterable[str] | None = None,
+    *,
+    ignore_error: bool = False,
+) -> str:
     """Substitute any "wildcard" variables in the string var.
 
-    var is the string to be substituted. mdict is a dictionary mapping
+    var is the string to be substituted. wildcard_values is a dictionary mapping
     variables to strings. ignored_wildcards is a list of wildcards that
     shouldn't be substituted. ignore_error means to partially evaluate rather
     than exit on an error.
@@ -251,68 +262,124 @@ def subst_wildcards(
 
     which returns 'a bee'. This is pretty hard to read though, so is probably
     not a good idea to use.
-
     """
     if ignored_wildcards is None:
         ignored_wildcards = []
-    try:
-        return _subst_wildcards(var, mdict, ignored_wildcards, ignore_error, [])[0]
-    except ValueError as err:
-        log.exception(str(err))
-        sys.exit(1)
+
+    return _subst_wildcards(
+        var,
+        wildcard_values=wildcard_values,
+        ignored_wildcards=ignored_wildcards,
+        ignore_error=ignore_error,
+        seen=[],
+    )[0]
+
+
+def _subst_wildcards_in_object(
+    obj: T,
+    wildcard_values: Mapping,
+    ignored_wildcards: Iterable,
+    *,
+    ignore_error: bool = False,
+) -> T:
+    """Recursive inplace substitute wildcards in object.
+
+    Find wildcards in obj and substitute with values found in
+    wildcard_values in-place.
+    """
+    if isinstance(obj, str):
+        return subst_wildcards(
+            var=obj,
+            wildcard_values=wildcard_values,
+            ignored_wildcards=ignored_wildcards,
+            ignore_error=ignore_error,
+        )
+
+    if isinstance(obj, MutableMapping):
+        # Recursively call this function in sub-dicts
+        return _subst_wildcards_in_mapping(
+            obj=obj,
+            wildcard_values=wildcard_values,
+            ignored_wildcards=ignored_wildcards,
+            ignore_error=ignore_error,
+        )
+
+    if isinstance(obj, Sequence):
+        return _subst_wildcards_in_sequence(
+            obj=obj,
+            wildcard_values=wildcard_values,
+            ignored_wildcards=ignored_wildcards,
+            ignore_error=ignore_error,
+        )
+
+    # Leave unknown object alone
+    return obj
+
+
+def _subst_wildcards_in_mapping(
+    obj: MutableMapping,
+    wildcard_values: Mapping,
+    ignored_wildcards: Iterable,
+    *,
+    ignore_error: bool = False,
+) -> Mapping:
+    """Recursive substitute wildcards in MutableMapping.
+
+    Find wildcards in dict values and substitute with values found in
+    wildcard_values and return resolved dict.
+    """
+    for key, val in obj.items():
+        obj[key] = _subst_wildcards_in_object(
+            obj=val,
+            wildcard_values=wildcard_values,
+            ignored_wildcards=ignored_wildcards,
+            ignore_error=ignore_error,
+        )
+
+    return obj
+
+
+def _subst_wildcards_in_sequence(
+    obj: Sequence,
+    wildcard_values: Mapping,
+    ignored_wildcards: Iterable,
+    *,
+    ignore_error: bool = False,
+) -> Sequence:
+    """Recursively substitute wildcards in dict.
+
+    Find wildcards in sub_dict and substitute with values found in
+    wildcard_values and return resolved sub_dict.
+    """
+    return [
+        _subst_wildcards_in_object(
+            obj[i],
+            wildcard_values=wildcard_values,
+            ignored_wildcards=ignored_wildcards,
+            ignore_error=ignore_error,
+        )
+        for i in range(len(obj))
+    ]
 
 
 def find_and_substitute_wildcards(
-    sub_dict,
-    full_dict,
-    ignored_wildcards=None,
-    ignore_error=False,
-):
-    """Recursively find key values containing wildcards in sub_dict in full_dict
-    and return resolved sub_dict.
+    obj: T,
+    wildcard_values: Mapping,
+    ignored_wildcards: Iterable | None = None,
+    *,
+    ignore_error: bool = False,
+) -> T:
+    """Recursively substitute wildcards.
+
+    Find wildcards in sub_dict and substitute with values found in
+    wildcard_values and return resolved sub_dict.
     """
     if ignored_wildcards is None:
         ignored_wildcards = []
-    for key in sub_dict:
-        if type(sub_dict[key]) in [dict, OrderedDict]:
-            # Recursively call this funciton in sub-dicts
-            sub_dict[key] = find_and_substitute_wildcards(
-                sub_dict[key],
-                full_dict,
-                ignored_wildcards,
-                ignore_error,
-            )
 
-        elif type(sub_dict[key]) is list:
-            sub_dict_key_values = list(sub_dict[key])
-            # Loop through the list of key's values and substitute each var
-            # in case it contains a wildcard
-            for i in range(len(sub_dict_key_values)):
-                if type(sub_dict_key_values[i]) in [dict, OrderedDict]:
-                    # Recursively call this funciton in sub-dicts
-                    sub_dict_key_values[i] = find_and_substitute_wildcards(
-                        sub_dict_key_values[i],
-                        full_dict,
-                        ignored_wildcards,
-                        ignore_error,
-                    )
-
-                elif type(sub_dict_key_values[i]) is str:
-                    sub_dict_key_values[i] = subst_wildcards(
-                        sub_dict_key_values[i],
-                        full_dict,
-                        ignored_wildcards,
-                        ignore_error,
-                    )
-
-            # Set the substituted key values back
-            sub_dict[key] = sub_dict_key_values
-
-        elif type(sub_dict[key]) is str:
-            sub_dict[key] = subst_wildcards(
-                sub_dict[key],
-                full_dict,
-                ignored_wildcards,
-                ignore_error,
-            )
-    return sub_dict
+    return _subst_wildcards_in_object(
+        obj=obj,
+        wildcard_values=wildcard_values,
+        ignored_wildcards=ignored_wildcards,
+        ignore_error=ignore_error,
+    )
