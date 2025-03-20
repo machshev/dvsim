@@ -47,6 +47,3 @@ __all__ = (
     "run_cmd_with_timeout",
     "subst_wildcards",
 )
-
-# For verbose logging
-VERBOSE = 15
