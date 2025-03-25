@@ -749,18 +749,12 @@ def parse_args(*, args_list: Sequence[str]):
         help=("Rather than building or running any tests, analyze the coverage from the last run."),
     )
 
-    pubg = parser.add_argument_group("Generating and publishing results")
+    pubg = parser.add_argument_group("Generating results")
 
     pubg.add_argument(
         "--map-full-testplan",
         action="store_true",
         help=("Show complete testplan annotated results at the end."),
-    )
-
-    pubg.add_argument(
-        "--publish",
-        action="store_true",
-        help="Publish results to reports.opentitan.org.",
     )
 
     dvg = parser.add_argument_group("Controlling DVSim itself")
@@ -804,6 +798,7 @@ def parse_args(*, args_list: Sequence[str]):
     if args.interactive and args.remote:
         log.error("--interactive and --remote cannot be set together")
         sys.exit()
+
     if args.interactive and args.reseed != 1:
         args.reseed = 1
 
@@ -834,10 +829,6 @@ def dvsim_run(args_list: Sequence[str]) -> None:
     if not os.path.exists(args.cfg):
         log.fatal("Path to config file %s appears to be invalid.", args.cfg)
         sys.exit(1)
-
-    # If publishing results, then force full testplan mapping of results.
-    if args.publish:
-        args.map_full_testplan = True
 
     args.branch = resolve_branch(args.branch)
     proj_root_src, proj_root = resolve_proj_root(args)
@@ -913,10 +904,6 @@ def dvsim_run(args_list: Sequence[str]) -> None:
 
         # Generate results.
         cfg.gen_results(results)
-
-        # Publish results
-        if args.publish:
-            cfg.publish_results()
 
     else:
         log.error("Nothing to run!")
