@@ -7,6 +7,7 @@ path = [
     # Auto generated lock files
     "flake.lock",
     "uv.lock",
+
     # Files that can't take a header
     ".python-version",
     "**.png",
