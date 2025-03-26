@@ -194,22 +194,22 @@ class Deploy:
         """Recursively search and replace substitution variables.
 
         First pass: search within self dict. We ignore errors since some
-        substitions may be available in the second pass. Second pass: search
+        substitutions may be available in the second pass. Second pass: search
         the entire sim_cfg object.
         """
         if ignored_subst_vars is None:
             ignored_subst_vars = []
         self.__dict__ = find_and_substitute_wildcards(
-            self.__dict__,
-            self.__dict__,
-            ignored_subst_vars,
-            True,
+            obj=self.__dict__,
+            wildcard_values=self.__dict__,
+            ignored_wildcards=ignored_subst_vars,
+            ignore_error=True,
         )
         self.__dict__ = find_and_substitute_wildcards(
-            self.__dict__,
-            self.sim_cfg.__dict__,
-            ignored_subst_vars,
-            False,
+            obj=self.__dict__,
+            wildcard_values=self.sim_cfg.__dict__,
+            ignored_wildcards=ignored_subst_vars,
+            ignore_error=False,
         )
 
     def _process_exports(self):
