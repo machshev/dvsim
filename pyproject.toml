@@ -75,8 +75,20 @@ select = ["ALL"]
 extend-select = ["W391", "E303"]
 allowed-confusables = ["−"]
 ignore = [
-    "D203", "D213", "COM812", "ISC001",
-    "FIX", "TD",
+    "D203",
+    "D213",
+    "COM812",
+    "ISC001",
+    "FIX",
+    "TD",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = [
+    # Checks for boolean passed as positional argument which is useful in the
+    # main codebase for clarity. However it's common to assert against a boolean
+    # in tests and having to use kwargs in all cases will clutter the tests.
+    "FBT003",
 ]
 
 [tool.pytest.ini_options]
