@@ -9,7 +9,10 @@ path = [
     "uv.lock",
     # Files that can't take a header
     ".python-version",
-    "**.png"
+    "**.png",
+
+    # temporary files
+    "**.pyc",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "lowRISC contributors (OpenTitan project)."
