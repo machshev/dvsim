@@ -9,6 +9,7 @@ authors = [{name = "lowRISC contributors (OpenTitan project)"}]
 readme = "README.md"
 licence = "Apache-2.0"
 dependencies = [
+    # Keep sorted
     "click>=8.1.7",
     "enlighten>=1.12.4",
     "hjson>=3.1.0",
@@ -34,16 +35,21 @@ typing = [
 linting = [
     "ruff>=0.6.7",
 ]
+debug = [
+    "ipython>=8.18.1",
+]
 test = [
     "pyhamcrest>=2.1.0",
     "pytest>=8.3.3",
     "pytest-cov>=5.0.0",
 ]
-dev = ["dvsim[test,typing,linting,hooks]"]
+dev = [
+    "dvsim[test,typing,linting,hooks,debug]",
+]
 ci = ["dvsim[linting,typing,test]"]
 
 # drop out ruff as it contains a rust binary that needs to be installed by the flake
-nix = ["dvsim[test,typing,hooks]"]
+nix = ["dvsim[test,typing,hooks,debug]"]
 
 
 [project.scripts]
@@ -52,6 +58,9 @@ dvsim = "dvsim.cli:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch]
+metadata.allow-direct-references = true
 
 [tool.pyright]
 include = ["src"]
@@ -65,8 +74,6 @@ executionEnvironments = [
 [tool.ruff]
 target-version = "py310"
 line-length = 100
-extend-exclude = [
-]
 
 [tool.ruff.lint]
 preview = true
@@ -94,8 +101,3 @@ ignore = [
 [tool.pytest.ini_options]
 addopts = "--cov=dvsim --cov-report term-missing"
 
-
-[tool.uv]
-dev-dependencies = [
-    "ipython>=8.18.1",
-]
