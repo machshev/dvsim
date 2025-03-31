@@ -15,19 +15,18 @@ allowed-confusables = ["−"]
 ignore = [
     "D203",
     "D213",
-    "COM812",
-    "ISC001",
     "FIX",
     "TD",
 
 # High priority fixes
-    "N803",
-    "N818",
-    "N816",
-    "N806",
-    "B008",
-    "A001",
-    "PERF203",
+    "N803", # Function argument names
+    "N818", # Exception classes should end in Error
+    "N816", # Variable names
+    "N806", # Variable names
+    "LOG015", # Using root logger
+    "B008", # function calls in default arg value
+    "A001", # variable names mask builtins
+    "PERF203", # Exception handling in loops
 
 # Temporary ignores just for CI until the rules pass then they can be removed
 # from here to prevent future regressions
@@ -69,7 +68,6 @@ ignore = [
     "G003",
     "G004",
     "ISC001",
-    "LOG015",
     "N801",
     "PLC0414",
     "PLC0415",

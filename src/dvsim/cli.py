@@ -144,7 +144,9 @@ def resolve_branch(branch):
         return branch.replace("/", "-")
 
     result = subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"], stdout=subprocess.PIPE, check=False
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        stdout=subprocess.PIPE,
+        check=False,
     )
     branch = result.stdout.decode("utf-8").strip().replace("/", "-")
     if not branch:
@@ -241,7 +243,10 @@ def copy_repo(src, dest) -> None:
         subprocess.run(cmd, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
         log.exception(
-            "Failed to copy over %s to %s: %s", src, dest, e.stderr.decode("utf-8").strip()
+            "Failed to copy over %s to %s: %s",
+            src,
+            dest,
+            e.stderr.decode("utf-8").strip(),
         )
     log.info("Done.")
 
