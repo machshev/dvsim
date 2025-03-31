@@ -68,7 +68,9 @@ class MsgBuckets:
         return keys
 
     def get_counts(
-        self, keys: list[str] | None = None, severity_filter: list[str] | None = None
+        self,
+        keys: list[str] | None = None,
+        severity_filter: list[str] | None = None,
     ) -> list[int]:
         """Get bucket count totals as a list of integers.
 
@@ -126,7 +128,9 @@ class MsgBuckets:
         return any(self.get_counts(severity_filter=severity_filter))
 
     def print_signatures_md(
-        self, severity_filter: list[str] | None = None, max_per_bucket: int = -1
+        self,
+        severity_filter: list[str] | None = None,
+        max_per_bucket: int = -1,
     ) -> str:
         """Render signatures into a string buffer.
 
