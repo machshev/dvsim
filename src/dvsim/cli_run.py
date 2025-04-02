@@ -27,6 +27,7 @@ import shlex
 import subprocess
 import sys
 import textwrap
+from collections.abc import Sequence
 from pathlib import Path
 
 from dvsim.flow.factory import make_cfg
@@ -283,7 +284,7 @@ def parse_reseed_multiplier(as_str: str) -> float:
     return ret
 
 
-def parse_args():
+def parse_args(*, args_list: Sequence[str]):
     cfg_metavar = "<cfg-hjson-file>"
     parser = argparse.ArgumentParser(
         description=wrapped_docstring(),
@@ -793,7 +794,7 @@ def parse_args():
         help=("Print dvsim tool messages but don't actually run any command"),
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=args_list)
 
     if args.version:
         sys.exit()
@@ -821,9 +822,9 @@ def parse_args():
     return args
 
 
-def main() -> None:
+def dvsim_run(args_list: Sequence[str]) -> None:
     """DVSim CLI entry point."""
-    args = parse_args()
+    args = parse_args(args_list=args_list)
 
     configure_logging(
         verbose=args.verbose is not None,
@@ -925,7 +926,3 @@ def main() -> None:
     if cfg.has_errors():
         log.error("Errors were encountered in this run.")
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
