@@ -20,7 +20,6 @@ ignore = [
 
 # High priority fixes
     "N999", # Module names snake case
-    "N803", # Function argument names
     "N818", # Exception classes should end in Error
     "N816", # Variable names
     "N806", # Variable names
