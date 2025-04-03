@@ -17,7 +17,7 @@ from dvsim.CfgJson import set_target_attribute
 from dvsim.launcher.factory import get_launcher_cls
 from dvsim.logging import VERBOSE
 from dvsim.results_server import NoGCPError, ResultsServer
-from dvsim.Scheduler import Scheduler
+from dvsim.scheduler import Scheduler
 from dvsim.utils import (
     clean_odirs,
     find_and_substitute_wildcards,
