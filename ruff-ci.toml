@@ -22,7 +22,6 @@ ignore = [
     "N999", # Module names snake case
     "LOG015", # Using root logger
     "B008", # function calls in default arg value
-    "A001", # variable names mask builtins
     "PERF203", # Exception handling in loops
 
 # Temporary ignores just for CI until the rules pass then they can be removed
