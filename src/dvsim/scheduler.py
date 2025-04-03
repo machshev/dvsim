@@ -9,8 +9,8 @@ from signal import SIGINT, SIGTERM, signal
 
 from dvsim.launcher.base import LauncherBusy, LauncherError
 from dvsim.logging import VERBOSE
-from dvsim.Timer import Timer
 from dvsim.utils.status_printer import get_status_printer
+from dvsim.utils.timer import Timer
 
 
 # Sum of lengths of all lists in the given dict.
