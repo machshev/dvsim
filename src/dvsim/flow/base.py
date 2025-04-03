@@ -7,11 +7,13 @@ import logging as log
 import os
 import pprint
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import hjson
 
 from dvsim.flow.hjson import set_target_attribute
+from dvsim.job.deploy import Deploy
 from dvsim.launcher.factory import get_launcher_cls
 from dvsim.logging import VERBOSE
 from dvsim.scheduler import Scheduler
@@ -86,7 +88,7 @@ class FlowCfg:
         # For a primary cfg, it is the aggregated list of all deploy objects
         # under self.cfgs. For a non-primary cfg, it is the list of items
         # slated for dispatch.
-        self.deploy = []
+        self.deploy: Sequence[Deploy] = []
 
         # Timestamp
         self.timestamp_long = args.timestamp_long
@@ -387,7 +389,7 @@ class FlowCfg:
         for item in self.cfgs:
             item._create_deploy_objects()
 
-    def deploy_objects(self):
+    def deploy_objects(self) -> Mapping[Deploy, str]:
         """Public facing API for deploying all available objects.
 
         Runs each job and returns a map from item to status.
@@ -400,9 +402,13 @@ class FlowCfg:
             log.error("Nothing to run!")
             sys.exit(1)
 
-        return Scheduler(deploy, get_launcher_cls(), self.interactive).run()
+        return Scheduler(
+            items=deploy,
+            launcher_cls=get_launcher_cls(),
+            interactive=self.interactive,
+        ).run()
 
-    def _gen_results(self, results) -> None:
+    def _gen_results(self, results: Mapping[Deploy, str]) -> None:
         """The function is called after the flow has completed. It collates
         the status of all run targets and generates a dict. It parses the log
         to identify the errors, warnings and failures as applicable. It also
@@ -413,7 +419,7 @@ class FlowCfg:
         """
         return
 
-    def gen_results(self, results) -> None:
+    def gen_results(self, results: Mapping[Deploy, str]) -> None:
         """Public facing API for _gen_results().
 
         results should be a dictionary mapping deployed item to result.

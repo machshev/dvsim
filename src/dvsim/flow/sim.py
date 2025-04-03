@@ -4,21 +4,21 @@
 
 """Class describing simulation configuration object."""
 
-import collections
 import fnmatch
 import json
 import logging as log
 import os
 import re
 import sys
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 
 from tabulate import tabulate
 
 from dvsim.flow.base import FlowCfg
-from dvsim.job.deploy import CompileSim, CovAnalyze, CovMerge, CovReport, CovUnr, RunTest
+from dvsim.job.deploy import CompileSim, CovAnalyze, CovMerge, CovReport, CovUnr, Deploy, RunTest
 from dvsim.modes import BuildMode, Mode, RunMode, find_mode
 from dvsim.regression import Regression
 from dvsim.sim_results import SimResults
@@ -561,7 +561,7 @@ class SimCfg(FlowCfg):
         for item in self.cfgs:
             item._cov_unr()
 
-    def _gen_json_results(self, run_results):
+    def _gen_json_results(self, run_results: Mapping[Deploy, str]) -> Mapping:
         """Returns the run results as json-formatted dictionary."""
 
         def _empty_str_as_none(s: str) -> str | None:
@@ -703,7 +703,7 @@ class SimCfg(FlowCfg):
         if sim_results.buckets:
             by_tests = sorted(sim_results.buckets.items(), key=lambda i: len(i[1]), reverse=True)
             for bucket, tests in by_tests:
-                unique_tests = collections.defaultdict(list)
+                unique_tests = defaultdict(list)
                 for test, line, context in tests:
                     if not isinstance(test, RunTest):
                         continue
@@ -786,7 +786,7 @@ class SimCfg(FlowCfg):
             fail_msgs = ["\n## Failure Buckets", ""]
             for bucket, tests in by_tests:
                 fail_msgs.append(f"* `{bucket}` has {len(tests)} failures:")
-                unique_tests = collections.defaultdict(list)
+                unique_tests = defaultdict(list)
                 for test, line, context in tests:
                     unique_tests[test.name].append((test, line, context))
                 for name, test_reseeds in list(unique_tests.items())[:_MAX_UNIQUE_TESTS]:
