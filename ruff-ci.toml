@@ -21,7 +21,6 @@ ignore = [
 # High priority fixes
     "N999", # Module names snake case
     "N818", # Exception classes should end in Error
-    "N816", # Variable names
     "N806", # Variable names
     "LOG015", # Using root logger
     "B008", # function calls in default arg value
