@@ -7,7 +7,7 @@ import sys
 
 from dvsim.logging import VERBOSE
 from dvsim.modes import Mode, find_mode, find_mode_list
-from dvsim.Test import Test
+from dvsim.test import Test
 
 
 class Regression(Mode):
