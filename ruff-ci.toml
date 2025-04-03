@@ -20,7 +20,6 @@ ignore = [
 
 # High priority fixes
     "N999", # Module names snake case
-    "N818", # Exception classes should end in Error
     "LOG015", # Using root logger
     "B008", # function calls in default arg value
     "A001", # variable names mask builtins

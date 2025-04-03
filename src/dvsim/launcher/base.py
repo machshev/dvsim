@@ -19,7 +19,7 @@ class LauncherError(Exception):
         self.msg = msg
 
 
-class LauncherBusy(Exception):
+class LauncherBusyError(Exception):
     def __init__(self, msg) -> None:
         self.msg = msg
 
