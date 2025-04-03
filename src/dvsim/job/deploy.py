@@ -7,6 +7,7 @@ import pprint
 import random
 import shlex
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tabulate import tabulate
 
@@ -20,6 +21,11 @@ from dvsim.utils import (
     rm_path,
     subst_wildcards,
 )
+
+if TYPE_CHECKING:
+    from dvsim.flow.base import FlowCfg
+    from dvsim.flow.sim import SimCfg
+    from dvsim.launcher.base import Launcher
 
 
 class Deploy:
@@ -49,7 +55,7 @@ class Deploy:
             else self.full_name
         )
 
-    def __init__(self, sim_cfg) -> None:
+    def __init__(self, sim_cfg: "FlowCfg") -> None:
         assert self.target is not None
 
         # Cross ref the whole cfg object for ease.
@@ -82,7 +88,7 @@ class Deploy:
         self.cmd = self._construct_cmd()
 
         # Launcher instance created later using create_launcher() method.
-        self.launcher = None
+        self.launcher: Launcher | None = None
 
         # Job's wall clock time (a.k.a CPU time, or runtime).
         self.job_runtime = JobTime()
@@ -474,7 +480,7 @@ class RunTest(Deploy):
     fixed_seed = None
     cmds_list_vars = ["pre_run_cmds", "post_run_cmds"]
 
-    def __init__(self, index, test, build_job, sim_cfg) -> None:
+    def __init__(self, index, test, build_job, sim_cfg: "SimCfg") -> None:
         self.test_obj = test
         self.index = index
         self.build_seed = sim_cfg.build_seed

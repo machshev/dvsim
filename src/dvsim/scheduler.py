@@ -1,16 +1,23 @@
 # Copyright lowRISC contributors (OpenTitan project).
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
+"""Job scheduler."""
 
 import contextlib
 import logging as log
 import threading
+from collections.abc import Mapping, MutableMapping, MutableSequence, MutableSet, Sequence
 from signal import SIGINT, SIGTERM, signal
+from typing import TYPE_CHECKING
 
-from dvsim.launcher.base import LauncherBusyError, LauncherError
+from dvsim.job.deploy import Deploy
+from dvsim.launcher.base import Launcher, LauncherBusyError, LauncherError
 from dvsim.logging import VERBOSE
 from dvsim.utils.status_printer import get_status_printer
 from dvsim.utils.timer import Timer
+
+if TYPE_CHECKING:
+    from dvsim.flow.base import FlowCfg
 
 
 # Sum of lengths of all lists in the given dict.
@@ -51,8 +58,15 @@ def get_next_item(arr, index):
 class Scheduler:
     """An object that runs one or more Deploy items."""
 
-    def __init__(self, items, launcher_cls, interactive) -> None:
-        self.items = items
+    def __init__(
+        self,
+        items: Sequence[Deploy],
+        launcher_cls: type[Launcher],
+        *,
+        interactive: bool,
+    ) -> None:
+        """Initialise a job scheduler."""
+        self.items: Sequence[Deploy] = items
 
         # 'scheduled[target][cfg]' is a list of Deploy objects for the chosen
         # target and cfg. As items in _scheduled are ready to be run (once
@@ -60,7 +74,7 @@ class Scheduler:
         # they wait until slots are available for them to be dispatched.
         # When all items (in all cfgs) of a target are done, it is removed from
         # this dictionary.
-        self._scheduled = {}
+        self._scheduled: MutableMapping[str, MutableMapping[FlowCfg, MutableSequence[Deploy]]] = {}
         self.add_to_scheduled(items)
 
         # Print status periodically using an external status printer.
@@ -80,12 +94,12 @@ class Scheduler:
         # This is done to allow us to poll a smaller subset of jobs rather than
         # the entire regression. We keep rotating through our list of running
         # items, picking up where we left off on the last poll.
-        self._targets = list(self._scheduled.keys())
-        self._queued = {}
-        self._running = {}
-        self._passed = {}
-        self._failed = {}
-        self._killed = {}
+        self._targets: Sequence[str] = list(self._scheduled.keys())
+        self._queued: MutableMapping[str, MutableSequence[Deploy]] = {}
+        self._running: MutableMapping[str, MutableSequence[Deploy]] = {}
+        self._passed: MutableMapping[str, MutableSet[Deploy]] = {}
+        self._failed: MutableMapping[str, MutableSet[Deploy]] = {}
+        self._killed: MutableMapping[str, MutableSet[Deploy]] = {}
         self._total = {}
         self._requeued_count = 0
         self.last_target_polled_idx = -1
@@ -113,7 +127,7 @@ class Scheduler:
         # current status. This status is 'Q', 'D', 'P', 'F' or 'K',
         # corresponding to membership in the dicts above. This is not
         # per-target.
-        self.item_to_status = {}
+        self.item_to_status: MutableMapping[Deploy, str] = {}
 
         # Create the launcher instance for all items.
         for item in self.items:
@@ -121,9 +135,9 @@ class Scheduler:
 
         # The chosen launcher class. This allows us to access launcher
         # variant-specific settings such as max parallel jobs & poll rate.
-        self.launcher_cls = launcher_cls
+        self.launcher_cls: type[Launcher] = launcher_cls
 
-    def run(self):
+    def run(self) -> Mapping[Deploy, str]:
         """Run all scheduled jobs and return the results.
 
         Returns the results (status) of all items dispatched for all
@@ -188,7 +202,7 @@ class Scheduler:
         # We got to the end without anything exploding. Return the results.
         return self.item_to_status
 
-    def add_to_scheduled(self, items) -> None:
+    def add_to_scheduled(self, items: Sequence[Deploy]) -> None:
         """Add items to the list of _scheduled.
 
         'items' is a list of Deploy objects.
@@ -237,7 +251,7 @@ class Scheduler:
 
         return target
 
-    def _enqueue_successors(self, item=None) -> None:
+    def _enqueue_successors(self, item: Deploy | None = None) -> None:
         """Move an item's successors from _scheduled to _queued.
 
         'item' is the recently run job that has completed. If None, then we
@@ -252,9 +266,10 @@ class Scheduler:
             self._queued[next_item.target].append(next_item)
             self._remove_from_scheduled(next_item)
 
-    def _cancel_successors(self, item) -> None:
-        """Cancel an item's successors recursively by moving them from
-        _scheduled or _queued to _killed.
+    def _cancel_successors(self, item: Deploy) -> None:
+        """Cancel an item's successors.
+
+        Recursively move them from _scheduled or _queued to _killed.
         """
         items = self._get_successors(item)
         while items:
@@ -262,7 +277,7 @@ class Scheduler:
             self._cancel_item(next_item, cancel_successors=False)
             items.extend(self._get_successors(next_item))
 
-    def _get_successors(self, item=None):
+    def _get_successors(self, item: Deploy | None = None) -> MutableSequence[Deploy]:
         """Find immediate successors of an item.
 
         'item' is a job that has completed. We choose the target that follows
@@ -276,13 +291,17 @@ class Scheduler:
         """
         if item is None:
             target = self._get_next_target(None)
+            if target is None:
+                return []
+
             cfgs = set(self._scheduled[target])
         else:
             target = self._get_next_target(item.target)
-            cfgs = {item.sim_cfg}
 
-        if target is None:
-            return []
+            if target is None:
+                return []
+
+            cfgs = {item.sim_cfg}
 
         # Find item's successors that can be enqueued. We assume here that
         # only the immediately succeeding target can be enqueued at this
@@ -302,8 +321,8 @@ class Scheduler:
 
         return successors
 
-    def _ok_to_enqueue(self, item) -> bool:
-        """Returns true if ALL dependencies of item are complete."""
+    def _ok_to_enqueue(self, item: Deploy) -> bool:
+        """Return true if ALL dependencies of item are complete."""
         for dep in item.dependencies:
             # Ignore dependencies that were not scheduled to run.
             if dep not in self.items:
@@ -319,8 +338,8 @@ class Scheduler:
 
         return True
 
-    def _ok_to_run(self, item):
-        """Returns true if the required dependencies have passed.
+    def _ok_to_run(self, item: Deploy) -> bool:
+        """Return true if the required dependencies have passed.
 
         The item's needs_all_dependencies_passing setting is used to figure
         out whether we can run this item or not, based on its dependent jobs'
@@ -339,12 +358,13 @@ class Scheduler:
             if item.needs_all_dependencies_passing:
                 if dep_status in ["F", "K"]:
                     return False
+
             elif dep_status in ["P"]:
                 return True
 
         return item.needs_all_dependencies_passing
 
-    def _poll(self, hms):
+    def _poll(self, hms: str) -> bool:
         """Check for running items that have finished.
 
         Returns True if something changed.
@@ -382,9 +402,11 @@ class Scheduler:
 
                 if status == "P":
                     self._passed[target].add(item)
+
                 elif status == "F":
                     self._failed[target].add(item)
                     level = log.ERROR
+
                 else:
                     # Killed or Error dispatching
                     self._killed[target].add(item)
@@ -393,6 +415,7 @@ class Scheduler:
                 self._running[target].pop(self.last_item_polled_idx[target])
                 self.last_item_polled_idx[target] -= 1
                 self.item_to_status[item] = status
+
                 log.log(
                     level,
                     "[%s]: [%s]: [status] [%s: %s]",
@@ -414,7 +437,7 @@ class Scheduler:
 
         return changed
 
-    def _dispatch(self, hms) -> None:
+    def _dispatch(self, hms: str) -> None:
         """Dispatch some queued items if possible."""
         slots = self.launcher_cls.max_parallel - sum_dict_lists(self._running)
         if slots <= 0:
@@ -481,12 +504,12 @@ class Scheduler:
                 try:
                     item.launcher.launch()
 
-                except LauncherError as err:
-                    log.exception(err.msg)
+                except LauncherError:
+                    log.exception("Error launching %s", item)
                     self._kill_item(item)
 
-                except LauncherBusyError as err:
-                    log.exception("Launcher busy: %s", err)
+                except LauncherBusyError:
+                    log.exception("Launcher busy")
 
                     self._queued[target].append(item)
                     self._requeued_count += 1
@@ -517,7 +540,7 @@ class Scheduler:
             for item in list(self._running[target]):
                 self._kill_item(item)
 
-    def _check_if_done(self, hms):
+    def _check_if_done(self, hms: str) -> bool:
         """Check if we are done executing all jobs.
 
         Also, prints the status of currently running jobs.
@@ -560,7 +583,7 @@ class Scheduler:
             )
         return done
 
-    def _cancel_item(self, item, cancel_successors=True) -> None:
+    def _cancel_item(self, item: Deploy, *, cancel_successors: bool = True) -> None:
         """Cancel an item and optionally all of its successors.
 
         Supplied item may be in _scheduled list or the _queued list. From
@@ -576,7 +599,7 @@ class Scheduler:
         if cancel_successors:
             self._cancel_successors(item)
 
-    def _kill_item(self, item) -> None:
+    def _kill_item(self, item: Deploy) -> None:
         """Kill a running item and cancel all of its successors."""
         item.launcher.kill()
         self.item_to_status[item] = "K"
