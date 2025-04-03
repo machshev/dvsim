@@ -41,7 +41,7 @@ from dvsim.launcher.nc import NcLauncher
 from dvsim.launcher.sge import SgeLauncher
 from dvsim.launcher.slurm import SlurmLauncher
 from dvsim.logging import VERBOSE, configure_logging
-from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG, VERBOSE, Timer, rm_path, run_cmd_with_timeout
+from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG, Timer, rm_path, run_cmd_with_timeout
 
 # TODO: add dvsim_cfg.hjson to retrieve this info
 version = 0.1
