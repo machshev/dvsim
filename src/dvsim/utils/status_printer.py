@@ -1,12 +1,17 @@
 # Copyright lowRISC contributors (OpenTitan project).
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
-"""Status printing utilities."""
 
 import logging as log
+import os
 import sys
 
-import enlighten
+try:
+    import enlighten
+
+    ENLIGHTEN_EXISTS = True
+except ImportError:
+    ENLIGHTEN_EXISTS = False
 
 
 class StatusPrinter:
@@ -18,35 +23,19 @@ class StatusPrinter:
     """
 
     def __init__(self) -> None:
-        """Initialise."""
+        pass
 
-    def print_header(self, msg: str) -> None:
-        """Print header."""
+    def print_header(self, msg) -> None:
+        pass
 
-    def init_target(self, target: str, msg: str) -> None:
-        """Initialise target."""
+    def init_target(self, target, msg) -> None:
+        pass
 
-    def update_target(
-        self,
-        target: str,
-        hms: str,
-        msg: str,
-        perc,
-        running,
-    ) -> None:
-        """Update target.
-
-        Args:
-            hms: Elapsed time in hh:mm:ss.
-            target: The tool flow step.
-            msg: The completion status message (set externally).
-            perc: Percentage of completion.
-            running: What jobs are currently still running.
-
-        """
+    def update_target(self, target, hms, msg, perc, running) -> None:
+        pass
 
     def exit(self) -> None:
-        """Exit."""
+        pass
 
 
 class TtyStatusPrinter(StatusPrinter):
@@ -54,7 +43,7 @@ class TtyStatusPrinter(StatusPrinter):
 
     Targets are ASIC tool flow steps such as build, run, cov etc. These steps
     are sequenced by the Scheduler. There may be multiple jobs running in
-    parallel in each target. This class provides a mechanism to periodically
+    parallel in each target. This class provides a mechanism to peridically
     print the completion status of each target onto the terminal. Messages
     printed by this class are rather static in nature - all the necessary
     computations of how the jobs are progressing need to be handled externally.
@@ -73,16 +62,15 @@ class TtyStatusPrinter(StatusPrinter):
     status_fmt = header_fmt + " {perc:3.0f}%  {running}"
 
     def __init__(self) -> None:
-        """Once a target is complete, we no longer need to update it - we can
-        just skip it. Maintaining this here provides a way to print the status
-        one last time when it reaches 100%. It is much easier to do that here
-        than in the Scheduler class.
-        """
+        # Once a target is complete, we no longer need to update it - we can
+        # just skip it. Maintaining this here provides a way to print the status
+        # one last time when it reaches 100%. It is much easier to do that here
+        # than in the Scheduler class.
         super().__init__()
         self.target_done = {}
 
     def print_header(self, msg) -> None:
-        """Initialize / print the header bar.
+        """Initilize / print the header bar.
 
         The header bar contains an introductory message such as the legend of
         what Q, D, ... mean.
@@ -115,7 +103,7 @@ class TtyStatusPrinter(StatusPrinter):
             self.target_done[target] = True
 
     def exit(self) -> None:
-        """Do cleanup activities before exiting."""
+        """Do cleanup activities before exitting."""
 
 
 class EnlightenStatusPrinter(TtyStatusPrinter):
@@ -180,23 +168,31 @@ class EnlightenStatusPrinter(TtyStatusPrinter):
             self.status_target[target].close()
 
 
-def get_status_printer(*, interactive: bool) -> StatusPrinter:
+def get_status_printer(interactive):
     """Factory method that returns a status printer instance.
 
-    If stdout is a TTY, then return an instance of EnlightenStatusPrinter, else
-    return an instance of StatusPrinter.
+    If ENLIGHTEN_EXISTS (enlighten is installed) and stdout is a TTY, then
+    return an instance of EnlightenStatusPrinter, else return an instance of
+    StatusPrinter.
     """
     if interactive:
         return StatusPrinter()
 
-    if sys.stdout.isatty():
+    if os.environ.get("DVSIM_SIMPLE_STATUSPRINTER"):
+        return TtyStatusPrinter()
+
+    if ENLIGHTEN_EXISTS and sys.stdout.isatty():
         return EnlightenStatusPrinter()
 
     return TtyStatusPrinter()
 
 
-def print_msg_list(msg_list_title, msg_list, max_msg_count=-1):
-    """This function prints a list of messages to Markdown.
+def print_msg_list(
+    msg_list_title: str,
+    msg_list: Sequence[str],
+    max_msg_count: int = -1,
+) -> str:
+    """Print a list of messages to Markdown.
 
     The argument msg_list_title contains a string for the list title, whereas
     the msg_list argument contains the actual list of message strings.
@@ -207,18 +203,20 @@ def print_msg_list(msg_list_title, msg_list, max_msg_count=-1):
     print_msg_list("### Tool Warnings", ["Message A", "Message B"], 10)
 
     """
-    md_results = ""
-    if msg_list:
-        md_results += msg_list_title + "\n"
-        md_results += "```\n"
-        for k, msg in enumerate(msg_list):
-            if k <= max_msg_count or max_msg_count < 0:
-                md_results += msg + "\n\n"
-            else:
-                md_results += "Note: %d more messages have been suppressed " % (
-                    len(msg_list) - max_msg_count
-                )
-                md_results += "(max_msg_count = %d) \n\n" % (max_msg_count)
-                break
-        md_results += "```\n"
+    if not msg_list:
+        return ""
+
+    md_results = f"{msg_list_title}\n```\n"
+    for k, msg in enumerate(msg_list):
+        if k <= max_msg_count or max_msg_count < 0:
+            md_results += f"{msg}\n\n"
+        else:
+            others_count = len(msg_list) - max_msg_count
+            md_results += (
+                f"Note: {others_count} more messages have been suppressed "
+                f"(max_msg_count = {max_msg_count}) \n\n"
+            )
+            break
+    md_results += "```\n"
+
     return md_results
