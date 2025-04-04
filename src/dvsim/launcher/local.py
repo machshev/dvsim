@@ -15,6 +15,9 @@ from dvsim.launcher.base import ErrorMessage, Launcher, LauncherBusyError, Launc
 class LocalLauncher(Launcher):
     """Implementation of Launcher to launch jobs in the user's local workstation."""
 
+    # Poll job's completion status every this many seconds
+    poll_freq = 0.025
+
     def __init__(self, deploy) -> None:
         """Initialize common class members."""
         super().__init__(deploy)
