@@ -139,8 +139,8 @@ def htmc_color_pc_cells(text: str) -> str:
                     )
                     continue
                 # Percentage, colored.
-                if indicator == "%":
-                    color_bin = max(fp // 10, 10)  # the // operator is integer division
+                if indicator == "%" and fp >= 0.0:
+                    color_bin = min(int(fp // 10), 10)
                     subst = color_cell(cell, f"c{color_bin}")
 
                 # Percentage, uncolored.
