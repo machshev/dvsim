@@ -9,7 +9,7 @@ import tarfile
 from pathlib import Path
 
 from dvsim.launcher.base import ErrorMessage, Launcher, LauncherError
-from dvsim.logging import VERBOSE, log
+from dvsim.logging import log
 from dvsim.utils import clean_odirs
 
 
@@ -104,7 +104,7 @@ class LsfLauncher(Launcher):
             LsfLauncher._post_finish_job_array(cfg, job_name, err_msg)
             raise LauncherError(err_msg)
 
-        log.log(VERBOSE, "[job_script]: %s", job_script)
+        log.verbose("[job_script]: %s", job_script)
         return job_script
 
     def __init__(self, deploy) -> None:

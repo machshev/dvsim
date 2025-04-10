@@ -276,7 +276,7 @@ class Deploy:
             if val != item_val:
                 return False
 
-        log.log(VERBOSE, 'Deploy job "%s" is equivalent to "%s"', item.name, self.name)
+        log.verbose('Deploy job "%s" is equivalent to "%s"', item.name, self.name)
         return True
 
     def pre_launch(self) -> None:

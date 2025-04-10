@@ -12,7 +12,7 @@ from pathlib import Path
 
 from dvsim.job.deploy import Deploy
 from dvsim.launcher.factory import get_launcher_cls
-from dvsim.logging import VERBOSE, log
+from dvsim.logging import log
 from dvsim.project import ProjectMeta
 from dvsim.scheduler import Scheduler
 from dvsim.utils import (
@@ -267,7 +267,7 @@ class FlowCfg:
             log.info("[results]: [%s]:\n%s\n", item.name, result)
             log.info("[scratch_path]: [%s] [%s]", item.name, item.scratch_path)
             item.write_results(self.results_html_name, item.results_md, json_str)
-            log.log(VERBOSE, "[report]: [%s] [%s/report.html]", item.name, item.results_dir)
+            log.verbose("[report]: [%s] [%s/report.html]", item.name, item.results_dir)
             self.errors_seen |= item.errors_seen
 
         if self.is_primary_cfg:

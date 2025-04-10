@@ -268,7 +268,7 @@ def copy_repo(src: Path, dest: Path) -> None:
     ]
 
     log.info("[copy_repo] [dest]: %s", dest)
-    log.log(VERBOSE, "[copy_repo] [cmd]: \n%s", " ".join(cmd))
+    log.verbose("[copy_repo] [cmd]: \n%s", " ".join(cmd))
 
     # Make sure the dest exists first.
     dest.mkdir(parents=True, exist_ok=True)

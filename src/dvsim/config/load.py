@@ -468,7 +468,7 @@ def load_cfg(
     # to be consumable once.
     include_paths = list(include_paths) if include_paths is not None else []
 
-    log.log(VERBOSE, "Loading config file '%s'", path)
+    log.verbose("Loading config file '%s'", path)
 
     # Load in the top level config file as is
     cfg_data = dict(
