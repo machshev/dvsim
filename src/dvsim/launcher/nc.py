@@ -3,13 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import datetime
-import logging as log
 import os
 import subprocess
 import sys
 
 from dvsim.launcher.base import ErrorMessage, Launcher, LauncherError
-from dvsim.logging import VERBOSE
+from dvsim.logging import VERBOSE, log
 from dvsim.utils import rm_path
 
 

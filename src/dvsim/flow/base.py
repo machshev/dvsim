@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Flow config base class."""
 
-import logging as log
 import os
 import pprint
 import sys
@@ -13,7 +12,7 @@ from pathlib import Path
 
 from dvsim.job.deploy import Deploy
 from dvsim.launcher.factory import get_launcher_cls
-from dvsim.logging import VERBOSE
+from dvsim.logging import VERBOSE, log
 from dvsim.project import ProjectMeta
 from dvsim.scheduler import Scheduler
 from dvsim.utils import (

@@ -4,13 +4,12 @@
 
 import collections
 import datetime
-import logging as log
 import os
 import re
 import sys
 from pathlib import Path
 
-from dvsim.logging import VERBOSE
+from dvsim.logging import VERBOSE, log
 from dvsim.utils import clean_odirs, mk_symlink, rm_path
 
 

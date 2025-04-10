@@ -4,10 +4,11 @@
 
 """Git utinity functions."""
 
-import logging as log
 from pathlib import Path
 
 from git import Repo
+
+from dvsim.logging import log
 
 __all__ = ("repo_root",)
 

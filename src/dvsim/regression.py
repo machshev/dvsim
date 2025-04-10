@@ -2,10 +2,9 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-import logging as log
 import sys
 
-from dvsim.logging import VERBOSE
+from dvsim.logging import VERBOSE, log
 from dvsim.modes import Mode, find_mode, find_mode_list
 from dvsim.test import Test
 

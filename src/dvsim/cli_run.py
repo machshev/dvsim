@@ -22,7 +22,6 @@ by the sim tool.
 
 import argparse
 import datetime
-import logging as log
 import os
 import random
 import sys
@@ -39,19 +38,9 @@ from dvsim.launcher.lsf import LsfLauncher
 from dvsim.launcher.nc import NcLauncher
 from dvsim.launcher.sge import SgeLauncher
 from dvsim.launcher.slurm import SlurmLauncher
-<<<<<<< HEAD
-from dvsim.logging import VERBOSE, configure_logging
-from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG, Timer, rm_path, run_cmd_with_timeout
-||||||| parent of 8222d09318 ([config] update cli and flow config classes to use the new config loader.)
-from dvsim.logging import VERBOSE, configure_logging
-from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG, rm_path, run_cmd_with_timeout
-from dvsim.utils.timer import Timer
-=======
-from dvsim.logging import configure_logging
+from dvsim.logging import configure_logging, log
 from dvsim.project import ProjectMeta
-from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG
-from dvsim.utils.timer import Timer
->>>>>>> 8222d09318 ([config] update cli and flow config classes to use the new config loader.)
+from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG, Timer
 
 # TODO: add dvsim_cfg.hjson to retrieve this info
 version = 0.1

@@ -3,17 +3,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """DVSim project."""
 
-import logging as log
 import os
 import shlex
 import subprocess
 import sys
 from pathlib import Path
 
-from logzero import logger
 from pydantic import BaseModel, ConfigDict
 
-from dvsim.logging import VERBOSE
+from dvsim.logging import log
 from dvsim.utils import (
     rm_path,
     run_cmd_with_timeout,
@@ -99,7 +97,7 @@ class ProjectMeta(BaseModel):
         else:
             root_path = src_path
 
-        logger.info("[proj_root]: %s", root_path)
+        log.info("[proj_root]: %s", root_path)
 
         # Create an empty FUSESOC_IGNORE file in scratch_root. This ensures that
         # any fusesoc invocation from a job won't search within scratch_root for

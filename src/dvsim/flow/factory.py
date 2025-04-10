@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Factory to generate a flow config."""
 
-import logging as log
 from argparse import Namespace
 from collections.abc import Sequence
 
@@ -15,6 +14,7 @@ from dvsim.flow.lint import LintCfg
 from dvsim.flow.rdc import RdcCfg
 from dvsim.flow.sim import SimCfg
 from dvsim.flow.syn import SynCfg
+from dvsim.logging import log
 from dvsim.project import ProjectMeta
 
 FLOW_HANDLERS = {

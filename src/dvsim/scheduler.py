@@ -4,7 +4,6 @@
 """Job scheduler."""
 
 import contextlib
-import logging as log
 import threading
 from collections.abc import Mapping, MutableMapping, MutableSequence, MutableSet, Sequence
 from signal import SIGINT, SIGTERM, signal
@@ -12,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from dvsim.job.deploy import Deploy
 from dvsim.launcher.base import Launcher, LauncherBusyError, LauncherError
-from dvsim.logging import VERBOSE
+from dvsim.logging import VERBOSE, log
 from dvsim.utils.status_printer import get_status_printer
 from dvsim.utils.timer import Timer
 

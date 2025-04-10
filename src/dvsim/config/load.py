@@ -38,7 +38,6 @@ config paths (pre wildcard substitution), as the values could be a result of
 different merged files... and wildcard substitutions.
 """
 
-import logging as log
 from collections.abc import (
     Callable,
     Iterable,
@@ -48,7 +47,7 @@ from collections.abc import (
 from pathlib import Path
 
 from dvsim.config.errors import ConflictingConfigValueError
-from dvsim.logging import VERBOSE
+from dvsim.logging import VERBOSE, log
 from dvsim.utils.hjson import decode_hjson
 
 __all__ = ("load_cfg",)

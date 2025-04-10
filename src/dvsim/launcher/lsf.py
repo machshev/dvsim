@@ -2,7 +2,6 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-import logging as log
 import os
 import re
 import subprocess
@@ -10,7 +9,7 @@ import tarfile
 from pathlib import Path
 
 from dvsim.launcher.base import ErrorMessage, Launcher, LauncherError
-from dvsim.logging import VERBOSE
+from dvsim.logging import VERBOSE, log
 from dvsim.utils import clean_odirs
 
 

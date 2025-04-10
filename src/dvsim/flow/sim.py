@@ -6,7 +6,6 @@
 
 import fnmatch
 import json
-import logging as log
 import os
 import re
 import sys
@@ -20,6 +19,7 @@ from tabulate import tabulate
 
 from dvsim.flow.base import FlowCfg
 from dvsim.job.deploy import CompileSim, CovAnalyze, CovMerge, CovReport, CovUnr, Deploy, RunTest
+from dvsim.logging import log
 from dvsim.modes import BuildMode, Mode, RunMode, find_mode
 from dvsim.project import ProjectMeta
 from dvsim.regression import Regression

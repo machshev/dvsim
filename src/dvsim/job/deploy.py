@@ -2,7 +2,6 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-import logging as log
 import pprint
 import random
 import shlex
@@ -13,7 +12,7 @@ from tabulate import tabulate
 
 from dvsim.job.time import JobTime
 from dvsim.launcher.factory import get_launcher
-from dvsim.logging import VERBOSE
+from dvsim.logging import VERBOSE, log
 from dvsim.sim_utils import get_cov_summary_table, get_job_runtime, get_simulated_time
 from dvsim.utils import (
     clean_odirs,

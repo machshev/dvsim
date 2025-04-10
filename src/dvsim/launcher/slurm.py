@@ -2,13 +2,13 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-import logging as log
 import os
 import shlex
 import shutil
 import subprocess
 
 from dvsim.launcher.base import ErrorMessage, Launcher, LauncherError
+from dvsim.logging import log
 
 SLURM_QUEUE = os.environ.get("SLURM_QUEUE", "hw-m")
 SLURM_MEM = os.environ.get("SLURM_MEM", "16G")

@@ -4,7 +4,6 @@
 
 """Class describing a one-shot build configuration object."""
 
-import logging as log
 import os
 from argparse import Namespace
 from collections import OrderedDict
@@ -13,6 +12,7 @@ from pathlib import Path
 
 from dvsim.flow.base import FlowCfg
 from dvsim.job.deploy import CompileOneShot
+from dvsim.logging import log
 from dvsim.modes import BuildMode, Mode
 from dvsim.project import ProjectMeta
 from dvsim.utils import rm_path

@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Modes."""
 
-import logging as log
 import sys
 from collections.abc import Mapping, Sequence
+
+from dvsim.logging import log
 
 
 class Mode:
