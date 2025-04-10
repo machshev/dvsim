@@ -48,7 +48,7 @@ from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG, rm_path, run_cmd_with_timeout
 from dvsim.utils.timer import Timer
 =======
 from dvsim.logging import configure_logging
-from dvsim.project import init_project
+from dvsim.project import ProjectMeta
 from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG
 from dvsim.utils.timer import Timer
 >>>>>>> 8222d09318 ([config] update cli and flow config classes to use the new config loader.)
@@ -672,15 +672,17 @@ def dvsim_run(args_list: Sequence[str]) -> None:
         debug=args.verbose == "debug",
     )
 
-    project_cfg = init_project(
+    project_cfg = ProjectMeta.init(
         cfg_path=Path(args.cfg),
         proj_root=Path(args.proj_root) if args.proj_root else None,
         scratch_root=Path(args.scratch_root) if args.scratch_root else None,
         branch=args.branch,
+        job_prefix=args.job_prefix,
+        purge=args.purge,
         dry_run=args.dry_run,
         remote=args.remote,
-        job_prefix=args.job_prefix,
     )
+    project_cfg.save()
 
     # Add timestamp to args that all downstream objects can use.
     curr_ts = datetime.datetime.now(datetime.UTC)

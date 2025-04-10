@@ -8,8 +8,10 @@ import os
 import shlex
 import subprocess
 import sys
-from dataclasses import dataclass
 from pathlib import Path
+
+from logzero import logger
+from pydantic import BaseModel, ConfigDict
 
 from dvsim.logging import VERBOSE
 from dvsim.utils import (
@@ -17,12 +19,13 @@ from dvsim.utils import (
     run_cmd_with_timeout,
 )
 
-__all__ = ("init_project",)
+__all__ = ("ProjectMeta",)
 
 
-@dataclass(frozen=True, kw_only=True)
-class ProjectMeta:
+class ProjectMeta(BaseModel):
     """Project meta data."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     top_cfg_path: Path
     root_path: Path
@@ -31,73 +34,90 @@ class ProjectMeta:
     branch: str
     job_prefix: str
 
+    def save(self) -> None:
+        """Save project meta to file."""
+        meta_json = self.model_dump_json(indent=2)
 
-def init_project(
-    cfg_path: Path,
-    proj_root: Path | None,
-    scratch_root: Path | None,
-    branch: str,
-    *,
-    job_prefix: str = "",
-    purge: bool = False,
-    dry_run: bool = False,
-    remote: bool = False,
-) -> ProjectMeta:
-    """Initialise a project workspace.
+        log.debug("Project meta:\n%s", meta_json)
 
-    If --remote switch is set, a location in the scratch area is chosen as the
-    new proj_root. The entire repo is copied over to this location. Else, the
-    proj_root is discovered using get_proj_root() method, unless the user
-    overrides it on the command line.
+        run_dir = self.scratch_path / self.branch
+        run_dir.mkdir(parents=True, exist_ok=True)
 
-    This function returns the updated proj_root src and destination path. If
-    --remote switch is not set, the destination path is identical to the src
-    path. Likewise, if --dry-run is set.
-    """
-    if not cfg_path.exists():
-        log.fatal("Path to config file %s appears to be invalid.", cfg_path)
-        sys.exit(1)
+        (run_dir / "project.json").write_text(meta_json)
 
-    branch = resolve_branch(branch)
+    @staticmethod
+    def load(path: Path) -> "ProjectMeta":
+        """Load project meta from file."""
+        data = (path / "project.json").read_text()
+        return ProjectMeta.model_validate_json(data)
 
-    src_path = Path(proj_root) if proj_root else get_proj_root()
+    @staticmethod
+    def init(
+        cfg_path: Path,
+        proj_root: Path | None,
+        scratch_root: Path | None,
+        branch: str,
+        *,
+        job_prefix: str = "",
+        purge: bool = False,
+        dry_run: bool = False,
+        remote: bool = False,
+    ) -> "ProjectMeta":
+        """Initialise a project workspace.
 
-    scratch_path = resolve_scratch_root(
-        scratch_root,
-        src_path,
-    )
+        If --remote switch is set, a location in the scratch area is chosen as the
+        new proj_root. The entire repo is copied over to this location. Else, the
+        proj_root is discovered using get_proj_root() method, unless the user
+        overrides it on the command line.
 
-    # Check if jobs are dispatched to external compute machines. If yes,
-    # then the repo needs to be copied over to the scratch area
-    # accessible to those machines.
-    # If --purge arg is set, then purge the repo_top that was copied before.
-    if remote and not dry_run:
-        root_path = scratch_path / branch / "repo_top"
-        if purge:
-            rm_path(root_path)
-        copy_repo(src_path, root_path)
-    else:
-        root_path = src_path
+        This function returns the updated proj_root src and destination path. If
+        --remote switch is not set, the destination path is identical to the src
+        path. Likewise, if --dry-run is set.
+        """
+        if not cfg_path.exists():
+            log.fatal("Path to config file %s appears to be invalid.", cfg_path)
+            sys.exit(1)
 
-    log.info("[proj_root]: %s", root_path)
+        branch = _resolve_branch(branch)
 
-    # Create an empty FUSESOC_IGNORE file in scratch_root. This ensures that
-    # any fusesoc invocation from a job won't search within scratch_root for
-    # core files.
-    (scratch_path / "FUSESOC_IGNORE").touch()
+        src_path = Path(proj_root) if proj_root else get_proj_root()
 
-    cfg_path = cfg_path.resolve()
-    if remote:
-        cfg_path = root_path / cfg_path.relative_to(src_path)
+        scratch_path = resolve_scratch_root(
+            scratch_root,
+            src_path,
+        )
 
-    return ProjectMeta(
-        top_cfg_path=cfg_path,
-        root_path=root_path,
-        src_path=src_path,
-        scratch_path=scratch_path,
-        branch=branch,
-        job_prefix=job_prefix,
-    )
+        # Check if jobs are dispatched to external compute machines. If yes,
+        # then the repo needs to be copied over to the scratch area
+        # accessible to those machines.
+        # If --purge arg is set, then purge the repo_top that was copied before.
+        if remote and not dry_run:
+            root_path = scratch_path / branch / "repo_top"
+            if purge:
+                rm_path(root_path)
+            copy_repo(src_path, root_path)
+        else:
+            root_path = src_path
+
+        logger.info("[proj_root]: %s", root_path)
+
+        # Create an empty FUSESOC_IGNORE file in scratch_root. This ensures that
+        # any fusesoc invocation from a job won't search within scratch_root for
+        # core files.
+        (scratch_path / "FUSESOC_IGNORE").touch()
+
+        cfg_path = cfg_path.resolve()
+        if remote:
+            cfg_path = root_path / cfg_path.relative_to(src_path)
+
+        return ProjectMeta(
+            top_cfg_path=cfg_path,
+            root_path=root_path,
+            src_path=src_path,
+            scratch_path=scratch_path,
+            branch=branch,
+            job_prefix=job_prefix,
+        )
 
 
 def _network_dir_accessible_and_exists(
@@ -270,7 +290,7 @@ def copy_repo(src: Path, dest: Path) -> None:
     log.info("Done.")
 
 
-def resolve_branch(branch: str | None) -> str:
+def _resolve_branch(branch: str | None) -> str:
     """Choose a branch name for output files.
 
     If the --branch argument was passed on the command line, the branch
