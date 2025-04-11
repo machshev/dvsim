@@ -5,9 +5,10 @@
 from collections.abc import Mapping
 from pathlib import Path
 
-from logzero import logger
 from mako import exceptions
 from mako.template import Template
+
+from dvsim.logging import log
 
 
 def render_template(path: Path, data: Mapping[str, object] | None = None) -> str:
@@ -25,7 +26,7 @@ def render_template(path: Path, data: Mapping[str, object] | None = None) -> str
     template_path = template_base_path / path
 
     if not template_path.exists():
-        logger.error("Template file not found: %s", template_path)
+        log.error("Template file not found: %s", template_path)
         raise FileNotFoundError
 
     try:
@@ -34,7 +35,7 @@ def render_template(path: Path, data: Mapping[str, object] | None = None) -> str
     except NameError:
         # The NameError exception doesn't contain a useful error message. this
         # has to ge requested seporatly from Mako for some reason?
-        logger.error(exceptions.text_error_template().render())
+        log.error(exceptions.text_error_template().render())
         raise
 
     if isinstance(output, bytes):

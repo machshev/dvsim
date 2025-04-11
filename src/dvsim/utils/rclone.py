@@ -8,7 +8,7 @@ import subprocess
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
-from logzero import logger
+from dvsim.logging import log
 
 __all__ = (
     "check_rclone_installed",
@@ -26,10 +26,10 @@ def check_rclone_installed() -> None:
             capture_output=True,
             check=False,
         )
-        logger.debug(proc.stdout.strip())
+        log.debug(proc.stdout.strip())
 
     except Exception:
-        logger.exception("rclone is not installed - please install it first")
+        log.exception("rclone is not installed - please install it first")
         raise
 
 
@@ -70,17 +70,17 @@ def rclone_copy(
     error = proc.stderr.decode("utf-8")
 
     if output:
-        logger.debug("rclone: %s", output)
+        log.debug("rclone: %s", output)
 
     if proc.returncode:
-        logger.error(
+        log.error(
             "rclone failed to copy from '%s' to '%s'",
             src_path,
             dest_path,
         )
 
         if error:
-            logger.error(error)
+            log.error(error)
 
         raise RuntimeError
 
@@ -115,8 +115,8 @@ def rclone_list_dirs(
 
     if proc.returncode:
         err = proc.stderr.decode("utf-8")
-        logger.error("rclone list dir failed: '%s'", path)
-        logger.error(err)
+        log.error("rclone list dir failed: '%s'", path)
+        log.error(err)
 
         raise RuntimeError
 

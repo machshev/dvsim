@@ -6,8 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from logzero import logger
-
+from dvsim.logging import log
 from dvsim.templates.render import render_template
 from dvsim.utils.rclone import rclone_copy, rclone_list_dirs
 
@@ -38,10 +37,10 @@ def gen_top_level_index(
         extra_env: mapping of environment variable key/value pairs for rclone
 
     """
-    logger.debug("Generating top level index for '%s'", str(base_path))
+    log.debug("Generating top level index for '%s'", str(base_path))
     dirs = rclone_list_dirs(path=base_path, extra_env=extra_env)
 
-    logger.debug(
+    log.debug(
         "Found report groups:\n - %s",
         "\n - ".join(dirs),
     )
@@ -55,7 +54,7 @@ def gen_top_level_index(
         },
     )
     if output is None:
-        logger.error("index template rendered nothing")
+        log.error("index template rendered nothing")
         return
 
     # The base path could be a remote bucket path, so generate the index locally
@@ -63,7 +62,7 @@ def gen_top_level_index(
     with TemporaryDirectory() as tmp_dir:
         base = Path(tmp_dir)
 
-        logger.debug("Generating reports in tmp dir: '%s'", base)
+        log.debug("Generating reports in tmp dir: '%s'", base)
 
         (base / "index.html").write_text(output)
 
@@ -71,7 +70,7 @@ def gen_top_level_index(
             report_class_dir = base / d
             report_class_dir.mkdir()
 
-            logger.debug(
+            log.debug(
                 "Generating report group index for '%s'",
                 str(d),
             )
@@ -81,7 +80,7 @@ def gen_top_level_index(
                 extra_env=extra_env,
             )
 
-            logger.debug(
+            log.debug(
                 "Found reports:\n - %s",
                 "\n - ".join(report_dirs),
             )
@@ -95,12 +94,12 @@ def gen_top_level_index(
                 },
             )
             if sub_index is None:
-                logger.error("index template rendered nothing")
+                log.error("index template rendered nothing")
                 return
 
             (report_class_dir / "index.html").write_text(sub_index)
 
-        logger.debug("Publishing index changes from temp dir '%s' -> '%s'", base, base_path)
+        log.debug("Publishing index changes from temp dir '%s' -> '%s'", base, base_path)
 
         rclone_copy(
             src_path=base,

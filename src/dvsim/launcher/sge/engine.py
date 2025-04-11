@@ -121,12 +121,12 @@ class SGE:
                 qliststr = _exec(self.cmd_qconf + " -sql")
             except OSError:
                 error_msg = "Error querying queue configuration"
-                logger.exception(error_msg)
+                log.exception(error_msg)
                 raise OSError(error_msg)
 
             self.q = qliststr.replace("\n", ",")[:-1]
 
-            logger.info(
+            log.info(
                 """Sun Grid Engine handler initialized
 Queues detected: %s""",
                 self.q,
@@ -157,7 +157,7 @@ Queues detected: %s""",
             pout, _ = p.communicate()
 
             if pbar is not None:
-                logger.error("Progress bar handling not implemented")
+                log.error("Progress bar handling not implemented")
 
             dowait = False
             for line in pout.split("\n"):
@@ -170,14 +170,14 @@ Queues detected: %s""",
                         break
                     if re.search(t[4], "acuE"):
                         # Job or host in error state
-                        logger.warning("Job %d in error state", str(jobid))
+                        log.warning("Job %d in error state", str(jobid))
 
             if dowait:
                 time.sleep(interval)
                 if name is None:
-                    logger.info("Time %s: waiting for jobid %s to finish", time.ctime(), str(jobid))
+                    log.info("Time %s: waiting for jobid %s to finish", time.ctime(), str(jobid))
                 else:
-                    logger.info(
+                    log.info(
                         "Time %s: waiting for job '%s' (jobid %s) to \
 finish",
                         time.ctime(),
@@ -205,7 +205,7 @@ finish",
         """
         logger = logging.getLogger("SGE.submit")
 
-        logger.info(
+        log.info(
             "Submitting job:   "
             + str(job)
             + " stdout: %s \
@@ -244,7 +244,7 @@ Stderr: %s",
                 raise IndexError(msg)
             except ValueError:
                 error_msg = "array[0] being an out of bounds access."
-                logger.exception(error_msg)
+                log.exception(error_msg)
                 raise ValueError(error_msg)
             try:
                 m = int(array[1])
@@ -290,7 +290,7 @@ Stderr: %s",
 
 Output was:
 {pout}"""
-            logger.exception(error_msg)
+            log.exception(error_msg)
             raise OSError(error_msg)
 
     def getuserjobs(self, user=pwd.getpwuid(os.getuid())[0]):
@@ -345,7 +345,7 @@ def _exec(command, print_to_screen=False, logfnm=None, stdin="", print_command=F
     logger = logging.getLogger("_exec")
 
     if print_command:
-        logger.info("Executing process: \x1b[1;92m%-50s\x1b[0m Logfile: %s", command, logfnm)
+        log.info("Executing process: \x1b[1;92m%-50s\x1b[0m Logfile: %s", command, logfnm)
 
     output = ""
     if logfnm is not None:
@@ -357,12 +357,12 @@ def _exec(command, print_to_screen=False, logfnm=None, stdin="", print_command=F
                 f.write(output)
         except OSError:
             error_msg = "Error: File: " + str(logfnm) + " does not appear to exist."
-            logger.exception(error_msg)
+            log.exception(error_msg)
             raise OSError(error_msg)
     else:
         output = _call_cmd(command, stdin)
 
-    logger.info("Output of command is:\n%s", output)
+    log.info("Output of command is:\n%s", output)
 
     if print_to_screen:
         pass
