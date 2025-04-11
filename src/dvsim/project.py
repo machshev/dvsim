@@ -31,6 +31,7 @@ class ProjectMeta(BaseModel):
     scratch_path: Path
     branch: str
     job_prefix: str
+    logfile: Path
 
     def save(self) -> None:
         """Save project meta to file."""
@@ -115,6 +116,7 @@ class ProjectMeta(BaseModel):
             scratch_path=scratch_path,
             branch=branch,
             job_prefix=job_prefix,
+            logfile=scratch_path / branch / "run.log",
         )
 
 

@@ -673,6 +673,8 @@ def dvsim_run(args_list: Sequence[str]) -> None:
     )
     project_cfg.save()
 
+    log.set_logfile(path=project_cfg.logfile)
+
     # Add timestamp to args that all downstream objects can use.
     curr_ts = datetime.datetime.now(datetime.UTC)
     args.timestamp_long = curr_ts.strftime(TS_FORMAT_LONG)

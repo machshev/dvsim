@@ -22,6 +22,7 @@ __all__ = ()
             "src_path": Path("src_path"),
             "branch": "branch",
             "job_prefix": "job_prefix",
+            "logfile": Path("logfile"),
         },
     ],
 )

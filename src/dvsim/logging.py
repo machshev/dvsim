@@ -4,9 +4,10 @@
 """Logging config."""
 
 import logging
+from pathlib import Path
 from typing import cast
 
-from logzero import setup_logger
+from logzero import DEFAULT_FORMAT, setup_logger
 
 __all__ = ("configure_logging",)
 
@@ -31,6 +32,23 @@ class DVSimLogger(logging.getLoggerClass()):
     def verbose(self, msg: object, *args: object) -> None:
         """Log a verbose msg."""
         self.log(self.VERBOSE, msg, *args)
+
+    def set_logfile(
+        self,
+        path: Path,
+        *,
+        level: int | None = None,
+        mode: str = "w",
+    ) -> None:
+        """Set a logfile to save the logs to."""
+        fh = logging.FileHandler(filename=path, mode=mode)
+
+        fh.setLevel(level or self.DEBUG)
+        fh.setFormatter(
+            logging.Formatter(DEFAULT_FORMAT),
+        )
+
+        self.addHandler(fh)
 
 
 def _build_logger() -> DVSimLogger:
