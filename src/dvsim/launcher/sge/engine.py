@@ -6,7 +6,6 @@
 # SGE.py
 #       _JobData Class
 # ----------------------------------
-import logging
 import os
 import pwd
 import re
@@ -14,6 +13,7 @@ import subprocess
 import time
 
 from dvsim.launcher.sge.qsubopts import QSubOptions
+from dvsim.logging import log
 
 sge_job_t = QSubOptions()
 
@@ -111,8 +111,6 @@ class SGE:
         q=None,
         path="",
     ) -> None:
-        logger = logging.getLogger("SGE.__init__")
-
         if q is None:
             # No queue specified. By default, submit to all available queues.
             self.cmd_qconf = os.path.join(path, "qconf")
@@ -149,8 +147,6 @@ Queues detected: %s""",
         jobid
         interval - Polling interval of SGE queue, in seconds. (Default: 10)
         """
-        logger = logging.getLogger("SGE.wait")
-
         dowait = True
         while dowait:
             p = subprocess.Popen(self.cmd_qstat, shell=True, stdout=subprocess.PIPE)
@@ -203,8 +199,6 @@ finish",
         """Submits a job to SGE
         Returns jobid as a number.
         """
-        logger = logging.getLogger("SGE.submit")
-
         log.info(
             "Submitting job:   "
             + str(job)
@@ -341,8 +335,6 @@ def _exec(command, print_to_screen=False, logfnm=None, stdin="", print_command=F
         )
         output, _ = p.communicate(stdin)
         return output
-
-    logger = logging.getLogger("_exec")
 
     if print_command:
         log.info("Executing process: \x1b[1;92m%-50s\x1b[0m Logfile: %s", command, logfnm)
