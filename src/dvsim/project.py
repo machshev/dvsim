@@ -7,20 +7,29 @@ import os
 import shlex
 import subprocess
 import sys
+from argparse import Namespace
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from dvsim.config.load import load_cfg
 from dvsim.logging import log
 from dvsim.utils import (
     rm_path,
     run_cmd_with_timeout,
 )
 
-__all__ = ("ProjectMeta",)
+__all__ = ("Project",)
 
 
-class ProjectMeta(BaseModel):
+class FlowConfig(BaseModel):
+    """Flow configuration data."""
+
+    model_config = ConfigDict(frozen=True, extra="allow")
+
+
+class Project(BaseModel):
     """Project meta data."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -31,7 +40,9 @@ class ProjectMeta(BaseModel):
     scratch_path: Path
     branch: str
     job_prefix: str
+
     logfile: Path
+    run_dir: Path
 
     def save(self) -> None:
         """Save project meta to file."""
@@ -39,16 +50,50 @@ class ProjectMeta(BaseModel):
 
         log.debug("Project meta:\n%s", meta_json)
 
-        run_dir = self.scratch_path / self.branch
-        run_dir.mkdir(parents=True, exist_ok=True)
+        self.run_dir.mkdir(parents=True, exist_ok=True)
 
-        (run_dir / "project.json").write_text(meta_json)
+        (self.run_dir / "project.json").write_text(meta_json)
+
+    def load_config(
+        self,
+        select_cfgs: Sequence[str] | None,
+        args: Namespace,
+    ) -> Mapping:
+        """Load the project configuration.
+
+        Args:
+            project_cfg: metadata about the project
+            select_cfgs: list of child config names to use from the primary config
+            args: are the arguments passed to the CLI
+
+        Returns:
+            Project configuration.
+
+        """
+        log.info("Loading primary config file: %s", self.top_cfg_path)
+
+        # load the whole project config data
+        cfg = dict(
+            load_cfg(
+                path=self.top_cfg_path,
+                path_resolution_wildcards={
+                    "proj_root": self.root_path,
+                },
+                select_cfgs=select_cfgs,
+            ),
+        )
+
+        # Tool specified on CLI overrides the file based config
+        if args.tool is not None:
+            cfg["tool"] = args.tool
+
+        return cfg
 
     @staticmethod
-    def load(path: Path) -> "ProjectMeta":
+    def load(path: Path) -> "Project":
         """Load project meta from file."""
         data = (path / "project.json").read_text()
-        return ProjectMeta.model_validate_json(data)
+        return Project.model_validate_json(data)
 
     @staticmethod
     def init(
@@ -61,7 +106,7 @@ class ProjectMeta(BaseModel):
         purge: bool = False,
         dry_run: bool = False,
         remote: bool = False,
-    ) -> "ProjectMeta":
+    ) -> "Project":
         """Initialise a project workspace.
 
         If --remote switch is set, a location in the scratch area is chosen as the
@@ -109,14 +154,16 @@ class ProjectMeta(BaseModel):
         if remote:
             cfg_path = root_path / cfg_path.relative_to(src_path)
 
-        return ProjectMeta(
+        run_dir = scratch_path / branch
+        return Project(
             top_cfg_path=cfg_path,
             root_path=root_path,
             src_path=src_path,
             scratch_path=scratch_path,
             branch=branch,
             job_prefix=job_prefix,
-            logfile=scratch_path / branch / "run.log",
+            logfile=run_dir / "run.log",
+            run_dir=run_dir,
         )
 
 
