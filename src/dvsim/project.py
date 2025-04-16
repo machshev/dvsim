@@ -28,6 +28,21 @@ class FlowConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="allow")
 
+    flow: str
+    name: str
+
+
+class TopFlowConfig(BaseModel):
+    """Flow configuration data."""
+
+    model_config = ConfigDict(frozen=True, extra="allow")
+
+    flow: str
+    project: str
+    revision: str
+
+    cfgs: Mapping[Path, FlowConfig]
+
 
 class Project(BaseModel):
     """Project meta data."""
@@ -40,6 +55,7 @@ class Project(BaseModel):
     scratch_path: Path
     branch: str
     job_prefix: str
+    config: TopFlowConfig | FlowConfig
 
     logfile: Path
     run_dir: Path
@@ -54,41 +70,6 @@ class Project(BaseModel):
 
         (self.run_dir / "project.json").write_text(meta_json)
 
-    def load_config(
-        self,
-        select_cfgs: Sequence[str] | None,
-        args: Namespace,
-    ) -> Mapping:
-        """Load the project configuration.
-
-        Args:
-            project_cfg: metadata about the project
-            select_cfgs: list of child config names to use from the primary config
-            args: are the arguments passed to the CLI
-
-        Returns:
-            Project configuration.
-
-        """
-        log.info("Loading primary config file: %s", self.top_cfg_path)
-
-        # load the whole project config data
-        cfg = dict(
-            load_cfg(
-                path=self.top_cfg_path,
-                path_resolution_wildcards={
-                    "proj_root": self.root_path,
-                },
-                select_cfgs=select_cfgs,
-            ),
-        )
-
-        # Tool specified on CLI overrides the file based config
-        if args.tool is not None:
-            cfg["tool"] = args.tool
-
-        return cfg
-
     @staticmethod
     def load(path: Path) -> "Project":
         """Load project meta from file."""
@@ -101,6 +82,8 @@ class Project(BaseModel):
         proj_root: Path | None,
         scratch_root: Path | None,
         branch: str,
+        select_cfgs: Sequence[str] | None,
+        args: Namespace,
         *,
         job_prefix: str = "",
         purge: bool = False,
@@ -117,6 +100,19 @@ class Project(BaseModel):
         This function returns the updated proj_root src and destination path. If
         --remote switch is not set, the destination path is identical to the src
         path. Likewise, if --dry-run is set.
+
+        Args:
+            args: are the arguments passed to the CLI
+            branch: version control branch
+            cfg_path: path to the top flow config
+            dry_run: do not run any jobs just go through the motions
+            job_prefix: prefix for the job name
+            proj_root: path to the project root
+            purge: bool = False,
+            remote: remote execution
+            scratch_root: path to the scratch dir
+            select_cfgs: list of child config names to use from the primary config
+
         """
         if not cfg_path.exists():
             log.fatal("Path to config file %s appears to be invalid.", cfg_path)
@@ -155,6 +151,14 @@ class Project(BaseModel):
             cfg_path = root_path / cfg_path.relative_to(src_path)
 
         run_dir = scratch_path / branch
+
+        config = _load_flow_config(
+            top_cfg_path=cfg_path,
+            root_path=root_path,
+            select_cfgs=select_cfgs,
+            args=args,
+        )
+
         return Project(
             top_cfg_path=cfg_path,
             root_path=root_path,
@@ -164,7 +168,49 @@ class Project(BaseModel):
             job_prefix=job_prefix,
             logfile=run_dir / "run.log",
             run_dir=run_dir,
+            config=config,
         )
+
+
+def _load_flow_config(
+    top_cfg_path: Path,
+    root_path: Path,
+    select_cfgs: Sequence[str] | None,
+    args: Namespace,
+) -> TopFlowConfig | FlowConfig:
+    """Load the project configuration.
+
+    Args:
+        top_cfg_path: path to the top level config file
+        root_path: path to the root of the project,
+        select_cfgs: list of child config names to use from the primary config
+        args: are the arguments passed to the CLI
+
+    Returns:
+        Project configuration.
+
+    """
+    log.info("Loading primary config file: %s", top_cfg_path)
+
+    # load the whole project config data
+    cfg = dict(
+        load_cfg(
+            path=top_cfg_path,
+            path_resolution_wildcards={
+                "proj_root": root_path,
+            },
+            select_cfgs=select_cfgs,
+        ),
+    )
+
+    # Tool specified on CLI overrides the file based config
+    if args.tool is not None:
+        cfg["tool"] = args.tool
+
+    if "cfgs" in cfg:
+        return TopFlowConfig.model_validate(cfg)
+
+    return FlowConfig.model_validate(cfg)
 
 
 def _network_dir_accessible_and_exists(
