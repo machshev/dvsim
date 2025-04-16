@@ -5,7 +5,6 @@
 """Factory to generate a flow config."""
 
 from argparse import Namespace
-from collections.abc import Mapping
 
 from dvsim.flow.base import FlowCfg
 from dvsim.flow.cdc import CdcCfg
@@ -54,7 +53,6 @@ def _get_flow_handler_cls(flow: str) -> type[FlowCfg]:
 
 def make_flow(
     project_cfg: Project,
-    config_data: Mapping,
     args: Namespace,
 ) -> FlowCfg:
     """Make a flow config by loading the config file at path.
@@ -69,6 +67,9 @@ def make_flow(
         config file.
 
     """
+    # convert back to simple dict
+    config_data = project_cfg.config.model_dump()
+
     if "flow" not in config_data:
         msg = 'No value for the "flow" key. Are you sure this is a dvsim configuration file?'
         raise RuntimeError(
