@@ -27,7 +27,7 @@ __all__ = ()
     ],
 )
 def test_project_meta(data: Mapping, tmp_path: Path) -> None:
-    """Test ProjectMeta saving and loading."""
+    """Test Project saving and loading."""
     meta = Project(
         **data,
         scratch_path=tmp_path,
