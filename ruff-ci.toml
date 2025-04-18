@@ -19,7 +19,6 @@ ignore = [
     "TD",
 
 # High priority fixes
-    "LOG015", # Using root logger
     "B008", # function calls in default arg value
     "PERF203", # Exception handling in loops
 
@@ -119,3 +118,6 @@ ignore = [
     # in tests and having to use kwargs in all cases will clutter the tests.
     "FBT003",
 ]
+
+[lint.pydocstyle]
+convention = "google"

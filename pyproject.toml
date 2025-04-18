@@ -94,6 +94,9 @@ ignore = [
     "FBT003",
 ]
 
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
 [tool.pytest.ini_options]
 addopts = "--cov=dvsim --cov-report term-missing"
 norecursedirs = ["*.egg", ".*", "_darcs", "build", "dist", "venv", "scratch", "doc"]
