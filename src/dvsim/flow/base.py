@@ -123,16 +123,6 @@ class FlowCfg:
         # Merge in the values from the loaded config file.
         self.__dict__.update(self._config_data)
 
-        # Is this a primary config? If so, we need to load up all the child
-        # configurations at this point. If not, we place ourselves into
-        # self.cfgs and consider ourselves a sort of "degenerate primary
-        # configuration".
-
-        if self.rel_path == "":
-            self.rel_path = self.flow_cfg_file.parent.relative_to(
-                self._project_cfg.root_path,
-            )
-
         # Process overrides before substituting wildcards
         overrides = self.__dict__.get("overrides")
         if overrides:
@@ -209,7 +199,6 @@ class FlowCfg:
         The deploy objects for build and run are created from the objects that
         were created from the create_objects() method.
         """
-        return
 
     def create_deploy_objects(self) -> None:
         """Public facing API for _create_deploy_objects()."""

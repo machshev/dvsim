@@ -31,6 +31,9 @@ class FlowConfig(BaseModel):
     flow: str
     name: str
 
+    self_dir: Path
+    rel_path: Path
+
 
 class TopFlowConfig(BaseModel):
     """Flow configuration data."""
@@ -40,6 +43,9 @@ class TopFlowConfig(BaseModel):
     flow: str
     project: str
     revision: str
+
+    self_dir: Path
+    rel_path: Path
 
     cfgs: Mapping[Path, FlowConfig]
 
@@ -208,6 +214,13 @@ def _load_flow_config(
         cfg["tool"] = args.tool
 
     if "cfgs" in cfg:
+        # add any missing rel_path fields
+        for child_cfg in cfg["cfgs"].values():
+            if "rel_path" not in child_cfg:
+                child_cfg["rel_path"] = child_cfg["self_dir"].relative_to(
+                    root_path,
+                )
+
         return TopFlowConfig.model_validate(cfg)
 
     return FlowConfig.model_validate(cfg)
