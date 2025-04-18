@@ -81,10 +81,6 @@ class FlowCfg(ABC):
         # process' environment.
         self.exports = []
 
-        # Add overrides using the overrides keyword - existing attributes
-        # are overridden with the override values.
-        self.overrides = []
-
         # Add a notion of "primary" cfg - this is indicated using
         # a special key 'use_cfgs' within the hjson cfg.
         self.is_primary_cfg = child_configs is not None
@@ -131,6 +127,10 @@ class FlowCfg(ABC):
             self.rel_path = self.flow_cfg_file.parent.relative_to(
                 self._project_cfg.root_path,
             )
+
+        # Construct the path variables after variable expansion.
+        self.results_dir = Path(self.scratch_base_path) / "reports" / self.rel_path
+        self.results_page = self.results_dir / self.results_html_name
 
         # Expand wildcards. If subclasses need to mess around with parameters
         # after merging the hjson but before expansion, they can override
