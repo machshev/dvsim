@@ -30,9 +30,9 @@ def render_template(path: Path, data: Mapping[str, object] | None = None) -> str
         raise FileNotFoundError
 
     try:
-        output = Template(template_path.read_text()).render(**data or {})  # noqa: S702
+        output = Template(filename=str(template_path)).render(**data or {})  # noqa: S702
 
-    except NameError:
+    except:
         # The NameError exception doesn't contain a useful error message. this
         # has to ge requested seporatly from Mako for some reason?
         log.error(exceptions.text_error_template().render())

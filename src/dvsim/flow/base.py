@@ -16,7 +16,6 @@ from dvsim.logging import log
 from dvsim.project import Project
 from dvsim.scheduler import Scheduler
 from dvsim.utils import (
-    clean_odirs,
     find_and_substitute_wildcards,
     md_results_to_html,
     mk_path,
