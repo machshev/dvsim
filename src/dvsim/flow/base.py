@@ -77,10 +77,6 @@ class FlowCfg:
         # process' environment.
         self.exports = []
 
-        # Add overrides using the overrides keyword - existing attributes
-        # are overridden with the override values.
-        self.overrides = []
-
         # Add a notion of "primary" cfg - this is indicated using
         # a special key 'use_cfgs' within the hjson cfg.
         self.is_primary_cfg = child_configs is not None
@@ -122,12 +118,6 @@ class FlowCfg:
 
         # Merge in the values from the loaded config file.
         self.__dict__.update(self._config_data)
-
-        # Process overrides before substituting wildcards
-        overrides = self.__dict__.get("overrides")
-        if overrides:
-            log.debug("applying overrides: %s", overrides)
-            self.__dict__.update({o["name"]: o["value"] for o in overrides})
 
         # Expand wildcards. If subclasses need to mess around with parameters
         # after merging the hjson but before expansion, they can override
