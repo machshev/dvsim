@@ -266,8 +266,6 @@ class FlowCfg:
         file with the same path and base name as the HTML file but with '.json'
         as suffix.
         """
-        # Prepare reports directory, keeping 90 day history.
-        clean_odirs(odir=self.results_dir, max_odirs=89)
         mk_path(self.results_dir)
 
         # Write results to the report area.
