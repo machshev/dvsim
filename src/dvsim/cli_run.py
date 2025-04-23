@@ -33,6 +33,7 @@ from dvsim.flow.factory import make_flow
 from dvsim.job.deploy import RunTest
 from dvsim.launcher.base import Launcher
 from dvsim.launcher.factory import set_launcher_type
+from dvsim.launcher.fake import FakeLauncher
 from dvsim.launcher.local import LocalLauncher
 from dvsim.launcher.lsf import LsfLauncher
 from dvsim.launcher.nc import NcLauncher
@@ -623,6 +624,12 @@ def parse_args(*, args_list: Sequence[str]):
         help=("Print dvsim tool messages but don't actually run any command"),
     )
 
+    dvg.add_argument(
+        "--fake",
+        action="store_true",
+        help=("Use a fake launcher that generates random results"),
+    )
+
     args = parser.parse_args(args=args_list)
 
     if args.version:
@@ -698,7 +705,8 @@ def dvsim_run(args_list: Sequence[str]) -> None:
     LsfLauncher.max_parallel = args.max_parallel
     NcLauncher.max_parallel = args.max_parallel
     Launcher.max_odirs = args.max_odirs
-    set_launcher_type(args.local)
+    FakeLauncher.max_parallel = args.max_parallel
+    set_launcher_type(is_local=args.local, fake=args.fake)
 
     # Build infrastructure from hjson file and create the list of items to
     # be deployed.
