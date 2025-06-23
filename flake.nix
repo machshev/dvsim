@@ -147,7 +147,7 @@
               UV_PYTHON = python.interpreter;
             }
             // lib.optionalAttrs pkgs.stdenv.isLinux {
-              LD_LIBRARY_PATH = lib.makeLibraryPath pkgs.pythonManylinuxPackages.manylinux1;
+              #LD_LIBRARY_PATH = lib.makeLibraryPath pkgs.pythonManylinuxPackages.manylinux1;
             };
           shellHook = ''
             unset PYTHONPATH
