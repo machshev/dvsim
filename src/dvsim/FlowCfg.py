@@ -413,6 +413,19 @@ class FlowCfg:
             log.error("Nothing to run!")
             sys.exit(1)
 
+        if os.environ.get("DVSIM_DEPLOY_DUMP", "true"):
+            dump_path = Path(self.scratch_base_path) / f"deploy_{self.timestamp}.json"
+            dump_path.write_text(
+                json.dumps(
+                    # Sort on full name to ensure consistent ordering
+                    sorted(
+                        [d.model_dump() for d in deploy],
+                        key=lambda d: d["full_name"],
+                    ),
+                    indent=2,
+                ),
+            )
+
         return Scheduler(deploy, get_launcher_cls(), self.interactive).run()
 
     def _gen_results(self, results) -> None:
