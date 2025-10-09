@@ -458,7 +458,7 @@ class SimCfg(FlowCfg):
         self.builds = []
         build_map = {}
         for build_mode_obj in self.build_list:
-            new_build = CompileSim(build_mode_obj, self)
+            new_build = CompileSim.new(build_mode_obj, self)
 
             # It is possible for tests to supply different build modes, but
             # those builds may differ only under specific circumstances,

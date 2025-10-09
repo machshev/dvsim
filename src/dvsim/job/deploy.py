@@ -7,15 +7,18 @@
 import pprint
 import random
 import shlex
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
+from pydantic import BaseModel
+from pydantic.config import ConfigDict
 from tabulate import tabulate
 
 from dvsim.job.time import JobTime
 from dvsim.launcher.base import Launcher
 from dvsim.logging import log
+from dvsim.modes import BuildMode
 from dvsim.sim_utils import get_cov_summary_table, get_job_runtime, get_simulated_time
 from dvsim.utils import (
     clean_odirs,
@@ -31,6 +34,49 @@ __all__ = (
     "CompileSim",
     "Deploy",
 )
+
+
+def _extract_exports(obj: Sequence[Mapping[str, Any]]) -> Mapping[str, str]:
+    """Extract exports.
+
+    Args:
+        obj: list of dictionaries containing environment variables
+
+    Returns:
+        Dictionary of environment variables.
+
+    """
+    return {k: str(v) for item in obj for k, v in item.items()}
+
+
+def join_and_escape(
+    obj: Sequence[str],
+    separator: str = " ",
+    variables: Mapping[str, str] | None = None,
+) -> str:
+    """Join and escape a list of strings.
+
+    Args:
+        values: list of strings to process
+        separator: join separator
+
+    Returns:
+        resolved string
+
+    """
+    if variables is None:
+        variables = {}
+
+    return shlex.quote(
+        separator.join(
+            find_and_substitute_wildcards(
+                obj=item.strip(),
+                wildcard_values=variables,
+                ignore_error=True,
+            )
+            for item in obj
+        )
+    )
 
 
 class Deploy:
@@ -100,6 +146,14 @@ class Deploy:
 
         # Job's wall clock time (a.k.a CPU time, or runtime).
         self.job_runtime = JobTime()
+
+        self.workspace_cfg = WorkspaceConfig(
+            project=sim_cfg.name,
+            project_root=sim_cfg.proj_root,
+            scratch_root=Path(sim_cfg.scratch_root),
+            scratch_path=Path(sim_cfg.scratch_path),
+            timestamp=sim_cfg.args.timestamp,
+        )
 
     def _define_attrs(self) -> None:
         """Define the attributes this instance needs to have.
@@ -234,7 +288,7 @@ class Deploy:
         into a dict variable, which makes it easy to merge the list of exports
         with the subprocess' env where the ASIC tool is invoked.
         """
-        return {k: str(v) for item in self.exports for k, v in item.items()}
+        return _extract_exports(self.exports)
 
     def _construct_cmd(self) -> str:
         """Construct the command that will eventually be launched."""
@@ -293,7 +347,7 @@ class Deploy:
         This is invoked by launcher::_pre_launch().
         """
 
-    def post_finish(self, status) -> None:
+    def post_finish(self, status: str) -> None:
         """Perform additional post-finish activities (callback).
 
         This is invoked by launcher::_post_finish().
@@ -328,11 +382,8 @@ class Deploy:
             log.warning(f"{self.full_name}: {e} Using dvsim-maintained job_runtime instead.")
             self.job_runtime.set(self.launcher.job_runtime_secs, "s")
 
-    def model_dump(self) -> Mapping:
+    def dump(self) -> Mapping:
         """Dump the deployment object to mapping object.
-
-        This method matches the interface provided by pydantic models to dump a
-        subset of the class attributes
 
         Returns:
             Representation of a deployment object as a dict.
@@ -350,7 +401,228 @@ class Deploy:
         }
 
 
-class CompileSim(Deploy):
+class WorkspaceConfig(BaseModel):
+    """Workspace configuration."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    project: str
+    timestamp: str
+
+    project_root: Path
+    scratch_root: Path
+    scratch_path: Path
+
+
+class CompileSim(BaseModel):
+    """Abstraction for building the simulation executable."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    qual_name: str
+    full_name: str
+
+    flow: str
+
+    workspace_cfg: WorkspaceConfig
+
+    cmd: str
+    exports: Mapping[str, str]
+
+    weight: int = 5
+    build_timeout_mins: int
+    dependencies: Sequence = ()  # jobs on which this job depends.
+
+    # Indicates whether running this job requires all dependencies to pass.
+    # If this flag is set to False, any passing dependency will trigger
+    # this current job to run
+    needs_all_dependencies_passing: bool = True
+
+    cov_db_dir: Path
+    odir: Path
+    log_path: Path
+
+    target: str = "build"
+    gui: bool = False
+    interactive: bool = False
+
+    @staticmethod
+    def new(build_mode_obj: BuildMode, sim_cfg: "SimCfg") -> "CompileSim":
+        """Create Sim compile stage job deployment."""
+        # Output directory where the artifacts go (used by the launcher).
+
+        name = build_mode_obj.name
+        project = sim_cfg.name
+
+        # Qualified name disambiguates the instance name with other instances
+        # of the same class (example: 'uart_smoke' reseeded multiple times
+        # needs to be disambiguated using the index -> '0.uart_smoke'.
+        qual_name = build_mode_obj.name
+
+        # Full name disambiguates across multiple cfg being run (example:
+        # 'aes:default', 'uart:default' builds.
+        variant_suffix = f"_{sim_cfg.variant}" if sim_cfg.variant else ""
+        full_name = f"{project}{variant_suffix}:{qual_name}"
+
+        # self.build_timeout_mins if self.build_timeout_mins is not None else 60
+
+        build_timeout_mins = (
+            # TODO: CLI args should be processed before this point
+            sim_cfg.args.build_timeout_mins or build_mode_obj.build_timeout_mins or 60
+        )
+        # Needs to be after the wildcard expansion to log anything meaningful
+        if build_timeout_mins:
+            log.debug('Timeout for job "%s" is %d minutes.', name, build_timeout_mins)
+
+        # These attributes may indirectly contribute to the construction of the
+        # command (through substitution vars) or other things such as pass /
+        # fail patterns.
+        variables = {
+            "build_mode": build_mode_obj.name,
+        }
+
+        odir = Path(sim_cfg.build_dir.format(**variables))
+
+        # Job name is used to group the job by cfg and target. The scratch path
+        # directory name is assumed to be uniquified, in case there are more
+        # than one sim_cfgs with the same name.
+        job_name = f"{Path(sim_cfg.scratch_path).name}_build_{name}"
+
+        # Input directories (other than self) this job depends on.
+        input_dirs = []
+
+        # Directories touched by this job. These directories are marked
+        # because they are used by dependent jobs as input.
+        output_dirs = [odir]
+
+        # Pass and fail patterns.
+        pass_patterns = sim_cfg.build_pass_patterns
+        fail_patterns = sim_cfg.build_fail_patterns
+
+        seed = sim_cfg.build_seed
+
+        cov_db_dir = sim_cfg.cov_db_dir.format(**variables)
+
+        # 'build_mode' is used as a substitution variable in the HJson.
+        if sim_cfg.cov:
+            output_dirs += [cov_db_dir]
+
+        dry_run = "-n " if sim_cfg.dry_run else ""
+
+        build_cmd = sim_cfg.build_cmd.strip()
+        build_dir = sim_cfg.build_dir.format(**variables)
+        pre_build_cmds = join_and_escape(sim_cfg.pre_build_cmds, " && ")
+        post_build_cmds = join_and_escape(sim_cfg.post_build_cmds, " && ")
+        sv_flist_gen_opts = join_and_escape(sim_cfg.sv_flist_gen_opts, variables=variables)
+        build_opts = join_and_escape(build_mode_obj.build_opts, variables=variables)
+
+        # TODO: do substitutions
+        cmd = (
+            f"make -f {sim_cfg.flow_makefile} build "
+            f"{dry_run}"
+            f"build_cmd={build_cmd} "
+            f"build_dir={build_dir} "
+            f"build_opts={build_opts} "
+            f"post_build_cmds={post_build_cmds} "
+            f"pre_build_cmds={pre_build_cmds} "
+            f"proj_root={sim_cfg.proj_root} "
+            f"sv_flist_gen_cmd={sim_cfg.sv_flist_gen_cmd} "
+            f"sv_flist_gen_dir={sim_cfg.sv_flist_gen_dir} "
+            f"sv_flist_gen_opts={sv_flist_gen_opts}"
+        )
+
+        # old = CompileSimOld(build_mode=build_mode_obj, sim_cfg=sim_cfg)
+        new = CompileSim(
+            name=build_mode_obj.name,
+            qual_name=qual_name,
+            full_name=full_name,
+            flow=project,
+            workspace_cfg=WorkspaceConfig(
+                project=project,
+                project_root=Path(sim_cfg.proj_root),
+                scratch_root=Path(sim_cfg.scratch_root),
+                scratch_path=Path(sim_cfg.scratch_path),
+                timestamp=sim_cfg.args.timestamp,
+            ),
+            cmd=cmd,
+            build_timeout_mins=build_timeout_mins,
+            exports=_extract_exports(sim_cfg.exports),
+            cov_db_dir=cov_db_dir,
+            odir=odir,
+            log_path=odir / "build.log",
+            interactive=sim_cfg.interactive,
+        )
+        # breakpoint()
+        return new  # new
+
+    def is_equivalent_job(self, item: "Deploy") -> bool:
+        """Check if Deploy object results in an equivalent dispatched job.
+
+        Determines if 'item' and 'self' would behave exactly the same way when
+        deployed. If so, then there is no point in keeping both. The caller can
+        choose to discard 'item' and pick 'self' instead. To do so, we check
+        the final resolved 'cmd' & the exports. The 'name' field will be unique
+        to 'item' and 'self', so we take that out of the comparison.
+        """
+        if not isinstance(item, Deploy | CompileSim):
+            return False
+
+        # Check if the cmd field is identical.
+        item_cmd = item.cmd.replace(item.name, self.name)
+        if self.cmd != item_cmd:
+            return False
+
+        # Check if exports have identical set of keys.
+        if self.exports.keys() != item.exports.keys():
+            return False
+
+        # Check if exports have identical values.
+        for key, val in self.exports.items():
+            item_val = item.exports[key]
+            if type(item_val) is str:
+                item_val = item_val.replace(item.name, self.name)
+            if val != item_val:
+                return False
+
+        log.verbose('Deploy job "%s" is equivalent to "%s"', item.name, self.name)
+        return True
+
+    def pre_launch(self, launcher: Launcher) -> None:
+        """Perform pre-launch tasks.
+
+        This is invoked by launcher::_pre_launch().
+        """
+        # Delete old coverage database directories before building again. We
+        # need to do this because the build directory is not 'renewed'.
+        rm_path(self.cov_db_dir)
+
+    def post_finish(self, status: str) -> None:
+        """Perform additional post-finish activities (callback).
+
+        This is invoked by launcher::_post_finish().
+        """
+
+    def dump(self) -> Mapping:
+        """Dump the deployment object to mapping object.
+
+        Returns:
+            Representation of a deployment object as a dict.
+
+        """
+        return {
+            "full_name": self.full_name,
+            "type": self.__class__.__name__,
+            "exports": self.exports,
+            "interactive": self.interactive,  # self.sim_cfg.interactive,
+            "log_path": str(self.log_path),  # self.get_log_path(),
+            "timeout_mins": self.build_timeout_mins,  # self.get_timeout_mins(),
+            "cmd": self.cmd,
+            "gui": self.gui,
+        }
+
+
+class CompileSimOld(Deploy):
     """Abstraction for building the simulation executable."""
 
     target = "build"
