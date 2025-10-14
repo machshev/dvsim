@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -304,7 +304,7 @@ wheels = [
 
 [[package]]
 name = "dvsim"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -390,7 +390,7 @@ requires-dist = [
     { name = "tabulate", specifier = ">=0.9.0" },
     { name = "toml", specifier = ">=0.10.2" },
 ]
-provides-extras = ["typing", "linting", "debug", "test", "dev", "release", "ci", "nix"]
+provides-extras = ["typing", "linting", "debug", "test", "release", "dev", "ci", "nix"]
 
 [[package]]
 name = "enlighten"
