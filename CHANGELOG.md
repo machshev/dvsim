@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.0.1 (2025-10-15)
+
+### Bug Fixes
+
+- Fake launcher missing abstract methods
+  ([`a58fd05`](https://github.com/lowRISC/dvsim/commit/a58fd05402439a31b443fe6b8e51dc23500bc05f))
+
+### Refactoring
+
+- Use deployment name instead of object as dict keys
+  ([`6938d34`](https://github.com/lowRISC/dvsim/commit/6938d343d9ef44cf23b333fdb066f39d6d34973c))
+
+
 ## v1.0.0 (2025-10-14)
 
 ### Bug Fixes
