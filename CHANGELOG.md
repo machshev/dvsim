@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.0.2 (2025-10-16)
+
+### Bug Fixes
+
+- Remove use of feature not supported by 3.10
+  ([`b8f45ef`](https://github.com/lowRISC/dvsim/commit/b8f45ef23040f961c391d94add0275b66a91b4cb))
+
+### Chores
+
+- Flake update
+  ([`7781364`](https://github.com/lowRISC/dvsim/commit/7781364fab1980b1448b0d8a49c6b3244af9d10a))
+
+### Continuous Integration
+
+- Fix python matrix
+  ([`a195684`](https://github.com/lowRISC/dvsim/commit/a195684ae8d2bd6733b0cad95f59e99d182b0257))
+
+
 ## v1.0.1 (2025-10-15)
 
 ### Bug Fixes
