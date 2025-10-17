@@ -34,6 +34,7 @@ class FakeSimCfg:
         self.args = FakeCliArgs()
         self.dry_run = True
         self.gui = False
+        self.interactive = False
 
         self.scratch_path = "/scratch_path"
         self.scratch_root = "/scratch_root"
