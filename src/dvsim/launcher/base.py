@@ -113,12 +113,16 @@ class Launcher(ABC):
         # The code below allows each launcher variant to set its own virtualenv
         # because the loading / activating mechanism could be different between
         # them.
-        Launcher.pyvenv = os.environ.get(
-            f"{project.upper()}_PYVENV_{Launcher.variant.upper()}",
+        common_venv = f"{project.upper()}_PYVENV"
+        variant = Launcher.variant.upper()
+
+        venv_path = os.environ.get(
+            f"{common_venv}_{variant}",
+            default=os.environ.get(common_venv, default=None),
         )
 
-        if not Launcher.pyvenv:
-            Launcher.pyvenv = os.environ.get(f"{project.upper()}_PYVENV")
+        if venv_path:
+            Launcher.pyvenv = Path(venv_path)
 
     @staticmethod
     @abstractmethod
