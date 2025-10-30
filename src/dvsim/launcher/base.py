@@ -158,10 +158,10 @@ class Launcher(ABC):
         common_venv = f"{project.upper()}_PYVENV"
         variant = Launcher.variant.upper()
 
-        venv_path = os.environ.get(
-            f"{common_venv}_{variant}",
-            default=os.environ.get(common_venv, default=None),
-        )
+        venv_path = os.environ.get(f"{common_venv}_{variant}")
+
+        if not venv_path:
+            venv_path = os.environ.get(common_venv)
 
         if venv_path:
             Launcher.pyvenv = Path(venv_path)
