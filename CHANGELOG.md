@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.0.3 (2025-10-30)
+
+### Bug Fixes
+
+- Add missing concrete implementations
+  ([`49786d0`](https://github.com/lowRISC/dvsim/commit/49786d0005a35215059d540b7d9136ae9d8b1ad5))
+
+- Remove dependency on launcher
+  ([`c135fa6`](https://github.com/lowRISC/dvsim/commit/c135fa6562132cf3337a6abb17942ff361d8fe5b))
+
+### Code Style
+
+- Improved docstrings and linting fixes
+  ([`bc1cdef`](https://github.com/lowRISC/dvsim/commit/bc1cdef82e8c8fde84ca9c10aba5731d108989d7))
+
+
 ## v1.0.2 (2025-10-16)
 
 ### Bug Fixes
