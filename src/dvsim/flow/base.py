@@ -16,9 +16,10 @@ from typing import TYPE_CHECKING, ClassVar
 import hjson
 
 from dvsim.flow.hjson import set_target_attribute
+from dvsim.job.data import CompletedJobStatus
 from dvsim.launcher.factory import get_launcher_cls
 from dvsim.logging import log
-from dvsim.scheduler import CompletedJobStatus, Scheduler
+from dvsim.scheduler import Scheduler
 from dvsim.utils import (
     find_and_substitute_wildcards,
     md_results_to_html,
@@ -430,7 +431,7 @@ class FlowCfg(ABC):
             )
 
         return Scheduler(
-            items=deploy,
+            items=[d.get_job_spec() for d in deploy],
             launcher_cls=get_launcher_cls(),
             interactive=self.interactive,
         ).run()

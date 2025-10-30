@@ -8,7 +8,7 @@ import collections
 import re
 from collections.abc import Mapping
 
-from dvsim.scheduler import CompletedJobStatus
+from dvsim.job.data import CompletedJobStatus
 from dvsim.testplan import Result
 
 _REGEX_REMOVE = [

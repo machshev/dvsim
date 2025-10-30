@@ -19,7 +19,7 @@ from dvsim.logging import log
 from dvsim.utils import clean_odirs, mk_symlink, rm_path
 
 if TYPE_CHECKING:
-    from dvsim.job.deploy import Deploy, WorkspaceConfig
+    from dvsim.job.data import JobSpec, WorkspaceConfig
 
 
 class LauncherError(Exception):
@@ -153,14 +153,14 @@ class Launcher(ABC):
         """Get a string representation."""
         return self.deploy.full_name + ":launcher"
 
-    def __init__(self, deploy: "Deploy") -> None:
+    def __init__(self, job_spec: "JobSpec") -> None:
         """Initialise launcher.
 
         Args:
             deploy: deployment object that will be launched.
 
         """
-        workspace_cfg = deploy.workspace_cfg
+        workspace_cfg = job_spec.workspace_cfg
 
         # One-time preparation of the workspace.
         if not Launcher.workspace_prepared:
@@ -174,7 +174,7 @@ class Launcher(ABC):
             Launcher.workspace_prepared_for_cfg.add(project)
 
         # Store the deploy object handle.
-        self.deploy = deploy
+        self.deploy = job_spec
 
         # Status of the job. This is primarily determined by the
         # _check_status() method, but eventually updated by the _post_finish()
@@ -223,11 +223,8 @@ class Launcher(ABC):
         Each extended class computes the list of exports and invokes this
         method right before launching the job.
         """
-        with open(
-            self.deploy.odir + "/env_vars",
-            "w",
-            encoding="UTF-8",
-            errors="surrogateescape",
+        with Path(self.deploy.odir + "/env_vars").open(
+            "w", encoding="UTF-8", errors="surrogateescape"
         ) as f:
             f.writelines(f"{var}={exports[var]}\n" for var in sorted(exports.keys()))
 
@@ -312,10 +309,8 @@ class Launcher(ABC):
         chk_passed = bool(pass_patterns) and (self.exit_code == 0)
 
         try:
-            with open(
-                self.deploy.get_log_path(),
-                encoding="UTF-8",
-                errors="surrogateescape",
+            with Path(self.deploy.get_log_path()).open(
+                encoding="UTF-8", errors="surrogateescape"
             ) as f:
                 lines = f.readlines()
         except OSError as e:

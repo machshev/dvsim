@@ -7,14 +7,13 @@
 import pprint
 import random
 import shlex
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import BaseModel
-from pydantic.config import ConfigDict
 from tabulate import tabulate
 
+from dvsim.job.data import JobSpec, WorkspaceConfig
 from dvsim.job.time import JobTime
 from dvsim.launcher.base import Launcher
 from dvsim.logging import log
@@ -29,19 +28,6 @@ from dvsim.utils import (
 if TYPE_CHECKING:
     from dvsim.flow.sim import SimCfg
     from dvsim.modes import BuildMode
-
-
-class WorkspaceConfig(BaseModel):
-    """Workspace configuration."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    project: str
-    timestamp: str
-
-    project_root: Path
-    scratch_root: Path
-    scratch_path: Path
 
 
 __all__ = (
@@ -125,6 +111,26 @@ class Deploy:
             scratch_path=Path(sim_cfg.scratch_path),
             timestamp=sim_cfg.args.timestamp,
         )
+
+    def get_job_spec(self) -> "JobSpec":
+        """Get the job spec for this deployment."""
+        job_spec = JobSpec(
+            job_type=self.__class__.__name__,
+            target=self.target,
+            flow=self.flow,
+            full_name=self.full_name,
+            workspace_cfg=self.workspace_cfg,
+            dependencies=[d.get_job_spec() for d in self.dependencies],
+            weight=self.weight,
+            needs_all_dependencies_passing=self.needs_all_dependencies_passing,
+            pre_launch=self.pre_launch(),
+            post_finish=self.post_finish(),
+            odir=self.odir,
+        )
+
+        job_spec._deploy = self  # Debug only
+
+        return job_spec
 
     def _define_attrs(self) -> None:
         """Define the attributes this instance needs to have.
@@ -312,17 +318,27 @@ class Deploy:
         log.verbose('Deploy job "%s" is equivalent to "%s"', item.name, self.name)
         return True
 
-    def pre_launch(self, launcher: Launcher) -> None:
-        """Perform additional pre-launch activities (callback).
+    def pre_launch(self) -> Callable[[Launcher], None]:
+        """Get pre-launch callback."""
 
-        This is invoked by launcher::_pre_launch().
-        """
+        def callback(launcher: Launcher) -> None:
+            """Perform additional pre-launch activities (callback).
 
-    def post_finish(self, status: str) -> None:
-        """Perform additional post-finish activities (callback).
+            This is invoked by launcher::_pre_launch().
+            """
 
-        This is invoked by launcher::_post_finish().
-        """
+        return callback
+
+    def post_finish(self) -> Callable[[str], None]:
+        """Get post finish callback."""
+
+        def callback(status: str) -> None:
+            """Perform additional post-finish activities (callback).
+
+            This is invoked by launcher::_post_finish().
+            """
+
+        return callback
 
     def get_log_path(self) -> str:
         """Return the log file path."""
@@ -454,11 +470,16 @@ class CompileSim(Deploy):
         if self.sim_cfg.args.build_timeout_mins is not None:
             self.build_timeout_mins = self.sim_cfg.args.build_timeout_mins
 
-    def pre_launch(self, launcher: Launcher) -> None:
-        """Perform pre-launch tasks."""
-        # Delete old coverage database directories before building again. We
-        # need to do this because the build directory is not 'renewed'.
-        rm_path(self.cov_db_dir)
+    def pre_launch(self) -> Callable[[Launcher], None]:
+        """Get pre-launch callback."""
+
+        def callback(_: Launcher) -> None:
+            """Perform pre-launch tasks."""
+            # Delete old coverage database directories before building again. We
+            # need to do this because the build directory is not 'renewed'.
+            rm_path(self.cov_db_dir)
+
+        return callback
 
     def get_timeout_mins(self) -> float:
         """Return the timeout in minutes.
@@ -637,15 +658,25 @@ class RunTest(Deploy):
                 self.run_timeout_multiplier,
             )
 
-    def pre_launch(self, launcher: Launcher) -> None:
+    def pre_launch(self) -> Callable[[Launcher], None]:
         """Perform pre-launch tasks."""
-        launcher.renew_odir = True
 
-    def post_finish(self, status) -> None:
-        """Perform tidy up tasks."""
-        if status != "P":
-            # Delete the coverage data if available.
-            rm_path(self.cov_db_test_dir)
+        def callback(launcher: Launcher) -> None:
+            """Perform pre-launch tasks."""
+            launcher.renew_odir = True
+
+        return callback
+
+    def post_finish(self) -> Callable[[str], None]:
+        """Get post finish callback."""
+
+        def callback(status: str) -> None:
+            """Perform tidy up tasks."""
+            if status != "P":
+                # Delete the coverage data if available.
+                rm_path(self.cov_db_test_dir)
+
+        return callback
 
     @staticmethod
     def get_seed() -> int:
@@ -816,21 +847,28 @@ class CovReport(Deploy):
         self.cov_results = ""
         self.cov_results_dict = {}
 
-    def post_finish(self, status) -> None:
-        """Extract the coverage results summary for the dashboard.
+    def post_finish(self) -> Callable[[str], None]:
+        """Get post finish callback."""
 
-        If the extraction fails, an appropriate exception is raised, which must
-        be caught by the caller to mark the job as a failure.
-        """
-        if self.dry_run or status != "P":
-            return
+        def callback(status: str) -> None:
+            """Extract the coverage results summary for the dashboard.
 
-        results, self.cov_total = get_cov_summary_table(self.cov_report_txt, self.sim_cfg.tool)
+            If the extraction fails, an appropriate exception is raised, which must
+            be caught by the caller to mark the job as a failure.
+            """
+            if self.dry_run or status != "P":
+                return
 
-        colalign = ("center",) * len(results[0])
-        self.cov_results = tabulate(results, headers="firstrow", tablefmt="pipe", colalign=colalign)
-        for tup in zip(*results, strict=False):
-            self.cov_results_dict[tup[0]] = tup[1]
+            results, self.cov_total = get_cov_summary_table(self.cov_report_txt, self.sim_cfg.tool)
+
+            colalign = ("center",) * len(results[0])
+            self.cov_results = tabulate(
+                results, headers="firstrow", tablefmt="pipe", colalign=colalign
+            )
+            for tup in zip(*results, strict=False):
+                self.cov_results_dict[tup[0]] = tup[1]
+
+        return callback
 
 
 class CovAnalyze(Deploy):
