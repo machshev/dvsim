@@ -13,7 +13,7 @@ TIME_DIVIDERS = [60.0] * 3 + [1000.0] * 5
 
 
 # TODO: Migrate to Time instead of a custom implementation
-class JobTime:  # noqa: PLW1641 # Muitable object should not implement __hash__
+class JobTime:  # noqa: PLW1641 Muitable object should not implement __hash__
     """Job runtime."""
 
     def __init__(self, time: float = 0.0, unit: str = "s", *, normalize: bool = True) -> None:
