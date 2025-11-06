@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v1.0.4 (2025-11-06)
+
+### Code Style
+
+- Linting, docstrings and typing
+  ([`08b8e6d`](https://github.com/lowRISC/dvsim/commit/08b8e6de9827d5f2a2e7d4c493d76f097d5f4ace))
+
+### Refactoring
+
+- Add WorkspaceCfg
+  ([`9a7a08e`](https://github.com/lowRISC/dvsim/commit/9a7a08e57d53bbf24f7b414ef84aee31c2d2b131))
+
+- Improvements in lsf launcher
+  ([`d64033d`](https://github.com/lowRISC/dvsim/commit/d64033d580b7acaba61b9fc98515e22de720dfe5))
+
+- Make cov_db_dirs deterministic
+  ([`3bb06fc`](https://github.com/lowRISC/dvsim/commit/3bb06fc14fb041a253da4d1af5ffc9989e2e63b3))
+
+- Rename model_dump -> dump
+  ([`53bbfd4`](https://github.com/lowRISC/dvsim/commit/53bbfd41ee38b7f0fcf97e07a7520573077db585))
+
+### Testing
+
+- Add initial CompileSim unittest
+  ([`e8d5279`](https://github.com/lowRISC/dvsim/commit/e8d52791c2ac5317648cb51f495db4eb8aeca3e7))
+
+
 ## v1.0.3 (2025-10-30)
 
 ### Bug Fixes
