@@ -245,7 +245,10 @@ class Launcher(ABC):
         old runs, creating the output directory, dumping all env variables
         etc. This method is already invoked by launch() as the first step.
         """
-        self.job_spec.pre_launch(self)
+        pre_launch_callback(
+            job_spec=self.job_spec,
+            launcher=self,
+        )
         self._make_odir()
         self.start_time = datetime.datetime.now()
 
@@ -416,7 +419,7 @@ class Launcher(ABC):
         try:
             # Run the target-specific cleanup tasks regardless of the job's
             # outcome.
-            self.job_spec.post_finish(status)
+            post_finish_callback(job_spec=self.job_spec, status=status)
 
         except Exception as e:
             # If the job had already failed, then don't do anything. If it's
@@ -435,3 +438,49 @@ class Launcher(ABC):
             assert isinstance(err_msg, ErrorMessage)
             self.fail_msg = err_msg
             log.verbose(err_msg.message)
+
+
+def pre_launch_callback(job_spec: "JobSpec", launcher: Launcher) -> None:
+    """Perform additional pre-launch activities (callback).
+
+    This is invoked by launcher::_pre_launch().
+    """
+    if job_spec.job_type == "CompileSim":
+        # Delete old coverage database directories before building again. We
+        # need to do this because the build directory is not 'renewed'.
+        rm_path(job_spec.cov_db_dir)
+        return
+
+    if job_spec.job_type == "RunTest":
+        launcher.renew_odir = True
+
+
+def post_finish_callback(job_spec: "JobSpec", status: str) -> None:
+    """Perform additional post-finish activities (callback).
+
+    This is invoked by launcher::_post_finish().
+    """
+    if job_spec.job_type == "RunTest" and status != "P":
+        # Delete the coverage data if available.
+        rm_path(job_spec.cov_db_test_dir)
+
+        return
+
+    if job_spec.job_type == "CovReport":
+        if job_spec.dry_run or status != "P":
+            return
+
+        results, job_spec.cov_total = get_cov_summary_table(
+            job_spec.cov_report_txt,
+            job_spec.tool,
+        )
+
+        colalign = ("center",) * len(results[0])
+        job_spec.cov_results = tabulate(
+            results,
+            headers="firstrow",
+            tablefmt="pipe",
+            colalign=colalign,
+        )
+        for tup in zip(*results, strict=False):
+            job_spec.cov_results_dict[tup[0]] = tup[1]

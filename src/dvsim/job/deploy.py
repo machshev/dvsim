@@ -130,10 +130,9 @@ class Deploy:
             interactive=self.sim_cfg.interactive,
             gui=self.gui,
             needs_all_dependencies_passing=self.needs_all_dependencies_passing,
-            pre_launch=self.pre_launch(),
-            post_finish=self.post_finish(),
             odir=self.odir,
             links=self.sim_cfg.links,
+            cov_db_dir=getattr(self, "cov_db_dir", None),
             log_path=Path(f"{self.odir}/{self.target}.log"),
             pass_patterns=self.pass_patterns,
             fail_patterns=self.fail_patterns,
@@ -325,28 +324,6 @@ class Deploy:
         log.verbose('Deploy job "%s" is equivalent to "%s"', item.name, self.name)
         return True
 
-    def pre_launch(self) -> Callable[[Launcher], None]:
-        """Get pre-launch callback."""
-
-        def callback(launcher: Launcher) -> None:
-            """Perform additional pre-launch activities (callback).
-
-            This is invoked by launcher::_pre_launch().
-            """
-
-        return callback
-
-    def post_finish(self) -> Callable[[str], None]:
-        """Get post finish callback."""
-
-        def callback(status: str) -> None:
-            """Perform additional post-finish activities (callback).
-
-            This is invoked by launcher::_post_finish().
-            """
-
-        return callback
-
     def get_timeout_mins(self) -> float | None:
         """Return the timeout in minutes."""
 
@@ -451,17 +428,6 @@ class CompileSim(Deploy):
 
         if self.sim_cfg.args.build_timeout_mins is not None:
             self.build_timeout_mins = self.sim_cfg.args.build_timeout_mins
-
-    def pre_launch(self) -> Callable[[Launcher], None]:
-        """Get pre-launch callback."""
-
-        def callback(_: Launcher) -> None:
-            """Perform pre-launch tasks."""
-            # Delete old coverage database directories before building again. We
-            # need to do this because the build directory is not 'renewed'.
-            rm_path(self.cov_db_dir)
-
-        return callback
 
     def get_timeout_mins(self) -> float:
         """Return the timeout in minutes.
@@ -639,26 +605,6 @@ class RunTest(Deploy):
                 self.full_name,
                 self.run_timeout_multiplier,
             )
-
-    def pre_launch(self) -> Callable[[Launcher], None]:
-        """Perform pre-launch tasks."""
-
-        def callback(launcher: Launcher) -> None:
-            """Perform pre-launch tasks."""
-            launcher.renew_odir = True
-
-        return callback
-
-    def post_finish(self) -> Callable[[str], None]:
-        """Get post finish callback."""
-
-        def callback(status: str) -> None:
-            """Perform tidy up tasks."""
-            if status != "P":
-                # Delete the coverage data if available.
-                rm_path(self.cov_db_test_dir)
-
-        return callback
 
     @staticmethod
     def get_seed() -> int:

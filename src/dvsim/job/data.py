@@ -75,9 +75,8 @@ class JobSpec(BaseModel):
     log_path: Path
     links: Mapping[str, Path]
 
-    # TODO: remove the need for these callables here
-    pre_launch: Callable[[Launcher], None]
-    post_finish: Callable[[str], None]
+    cov_db_dir: Path | None
+    cov_db_test_dir: Path | None
 
     pass_patterns: Sequence[str]
     fail_patterns: Sequence[str]
