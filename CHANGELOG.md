@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.0.5 (2025-11-11)
+
+### Chores
+
+- Nix flake update
+  ([`80545d3`](https://github.com/lowRISC/dvsim/commit/80545d3c4c1f131403cb17b9fc485adf0ddb7e56))
+
+### Refactoring
+
+- Add JobSpec common abstraction
+  ([`be1e1e1`](https://github.com/lowRISC/dvsim/commit/be1e1e1c56eb3842e75a1c6352b484a1b756fb6a))
+
+- Migrate from Depoy.dump to JobSpec.model_dump
+  ([`91ac90e`](https://github.com/lowRISC/dvsim/commit/91ac90e5a1f24f2cbeda9d1811bc95eb6b226547))
+
+
 ## v1.0.4 (2025-11-06)
 
 ### Code Style
