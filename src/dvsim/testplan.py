@@ -650,8 +650,8 @@ class Testplan:
                     continue
                 pass_rate = self._get_percentage(tr.passing, tr.total)
 
-                job_runtime = "" if tr.job_runtime is None else str(tr.job_runtime)
-                simulated_time = "" if tr.simulated_time is None else str(tr.simulated_time)
+                job_runtime = "" if tr.job_runtime is None else f"{tr.job_runtime:.3f}s"
+                simulated_time = "" if tr.simulated_time is None else f"{tr.simulated_time:.3f}us"
 
                 table.append(
                     [
