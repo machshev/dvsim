@@ -237,6 +237,7 @@ class Scheduler:
 
             results.append(
                 CompletedJobStatus(
+                    project=job_spec.workspace_cfg.project,
                     job_type=job_spec.job_type,
                     name=job_spec.name,
                     seed=job_spec.seed,

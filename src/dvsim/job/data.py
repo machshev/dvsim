@@ -119,6 +119,8 @@ class CompletedJobStatus(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    project: str
+    """Name of the project"""
     job_type: str
     """Deployment type"""
     name: str

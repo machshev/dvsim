@@ -471,14 +471,25 @@ class FlowCfg(ABC):
 
         """
         for item in self.cfgs:
+            project = item.name
+            item_results = [r for r in results if r.project == project]
+
             json_str = (
-                item._gen_json_results(results) if hasattr(item, "_gen_json_results") else None
+                item._gen_json_results(item_results) if hasattr(item, "_gen_json_results") else None
             )
-            result = item._gen_results(results)
-            log.info("[results]: [%s]:\n%s\n", item.name, result)
-            log.info("[scratch_path]: [%s] [%s]", item.name, item.scratch_path)
-            item.write_results(self.results_html_name, item.results_md, json_str)
-            log.verbose("[report]: [%s] [%s/report.html]", item.name, item.results_dir)
+            result = item._gen_results(item_results)
+
+            log.info("[results]: [%s]:\n%s\n", project, result)
+            log.info("[scratch_path]: [%s] [%s]", project, item.scratch_path)
+
+            item.write_results(
+                self.results_html_name,
+                item.results_md,
+                json_str=json_str,
+            )
+
+            log.verbose("[report]: [%s] [%s/report.html]", project, item.results_dir)
+
             self.errors_seen |= item.errors_seen
 
         if self.is_primary_cfg:
