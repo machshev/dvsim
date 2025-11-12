@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.0.6 (2025-11-12)
+
+### Bug Fixes
+
+- Report item filtering
+  ([`4b5d01d`](https://github.com/lowRISC/dvsim/commit/4b5d01d761454e82e21cd34529eeb8af5ed9a4a6))
+
+- Run and sim time precision and units
+  ([`8af1207`](https://github.com/lowRISC/dvsim/commit/8af12074f27e3f6e24694691384be8b5381908a9))
+
+
 ## v1.0.5 (2025-11-11)
 
 ### Chores
