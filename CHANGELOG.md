@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v1.1.0 (2025-11-13)
+
+### Features
+
+- Add SimTool interface and implementations
+  ([`b649826`](https://github.com/lowRISC/dvsim/commit/b64982650a104c69106e9d383144182b57b7bf15))
+
+### Refactoring
+
+- Use the tool plugins directly
+  ([`b6416fa`](https://github.com/lowRISC/dvsim/commit/b6416fab1e88396d6f0244f4c77b7c780fba1043))
+
+### Testing
+
+- Add initial tests for the VCS tool plugin.
+  ([`21edab1`](https://github.com/lowRISC/dvsim/commit/21edab12ec38dc586088d08e1d7f24dbcc0332c3))
+
+- Add tests for the tool plugin system
+  ([`b883b7b`](https://github.com/lowRISC/dvsim/commit/b883b7b73688f0cdde6bd50cfcbb98b07c2d177d))
+
+
 ## v1.0.6 (2025-11-12)
 
 ### Bug Fixes
