@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.2.0 (2025-11-14)
+
+### Features
+
+- Add JSON summary generation
+  ([`701cf04`](https://github.com/lowRISC/dvsim/commit/701cf048d2feca80e43b84b3b9c75b271bbdc0ea))
+
+- Add ResultsSummary model
+  ([`2c5b1e9`](https://github.com/lowRISC/dvsim/commit/2c5b1e95d73b01536ad802aa91d6ada819395513))
+
+
 ## v1.1.0 (2025-11-13)
 
 ### Features
