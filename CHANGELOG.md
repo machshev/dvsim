@@ -2,6 +2,34 @@
 
 <!-- version list -->
 
+## v1.3.0 (2025-11-18)
+
+### Features
+
+- Add block report template
+  ([`6e716fe`](https://github.com/lowRISC/dvsim/commit/6e716fea6f29c7a976d6f876fe6b6830827ae785))
+
+- Add jinja2 template renderer
+  ([`efeb68a`](https://github.com/lowRISC/dvsim/commit/efeb68add7b2b59e2b28cbbee0bdde04d648b5f0))
+
+- Add report generation from templates
+  ([`14406e4`](https://github.com/lowRISC/dvsim/commit/14406e40f059227bbdf00f6ee9134b23a612ca7f))
+
+- Add summary report template
+  ([`fa0852a`](https://github.com/lowRISC/dvsim/commit/fa0852aff97dd9e9a892c73f38b313e04e92a186))
+
+- Redirect template
+  ([`02b05fe`](https://github.com/lowRISC/dvsim/commit/02b05fe82ac0090f3b4a9cd708615150bfb62afd))
+
+### Refactoring
+
+- Clean up unused functions
+  ([`40958fd`](https://github.com/lowRISC/dvsim/commit/40958fdbf325bd90eb75b27234759c6b6e003d0c))
+
+- Tidy up results generation with direct model creation
+  ([`75d91a3`](https://github.com/lowRISC/dvsim/commit/75d91a3cb37ff918c61f636748992265c29ffd68))
+
+
 ## v1.2.0 (2025-11-14)
 
 ### Features
