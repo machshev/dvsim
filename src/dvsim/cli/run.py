@@ -821,7 +821,7 @@ def parse_args():
     return args
 
 
-def run() -> None:
+def main() -> None:
     """DVSim CLI entry point."""
     args = parse_args()
 
