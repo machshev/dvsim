@@ -63,6 +63,7 @@ nix = [
 
 [project.scripts]
 dvsim = "dvsim.cli:main"
+dvsim-admin = "dvsim.cli.admin:cli"
 
 ################
 # BUILD-SYSTEM #

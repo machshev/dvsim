@@ -4,6 +4,6 @@
 
 """DVSim CLI."""
 
-from dvsim.cli.main import main
+from dvsim.cli.run import main
 
 __all__ = ("main",)
