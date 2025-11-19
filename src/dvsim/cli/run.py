@@ -821,7 +821,7 @@ def parse_args():
     return args
 
 
-def main() -> None:
+def run() -> None:
     """DVSim CLI entry point."""
     args = parse_args()
 
@@ -917,7 +917,3 @@ def main() -> None:
     if cfg.has_errors():
         log.error("Errors were encountered in this run.")
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
