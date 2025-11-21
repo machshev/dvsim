@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.4.0 (2025-11-21)
+
+### Chores
+
+- Nix flake update
+  ([`8ed6cb3`](https://github.com/lowRISC/dvsim/commit/8ed6cb37e451596e51f319c9e67536348d73d9c7))
+
+### Features
+
+- Add report generation from JSON
+  ([`69d8da6`](https://github.com/lowRISC/dvsim/commit/69d8da6cc65d71f8aceab3f00de1d6bbaf2f5598))
+
+### Refactoring
+
+- Move cli from module to package
+  ([`865d28a`](https://github.com/lowRISC/dvsim/commit/865d28a00411fd46997abdd7f11a5addf46855ff))
+
+
 ## v1.3.1 (2025-11-21)
 
 ### Bug Fixes
