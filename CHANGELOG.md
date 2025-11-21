@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.5.0 (2025-11-21)
+
+### Bug Fixes
+
+- Use git commit directly from git
+  ([`835926b`](https://github.com/lowRISC/dvsim/commit/835926b1b1155edd923245b826a6d7124ea43024))
+
+### Features
+
+- Add git utils for getting git commit hash
+  ([`0cbdc49`](https://github.com/lowRISC/dvsim/commit/0cbdc496c5a9081759f999c2df98fab349e5741d))
+
+
 ## v1.4.0 (2025-11-21)
 
 ### Chores
