@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v1.3.1 (2025-11-21)
+
+### Bug Fixes
+
+- Restore variant to the report
+  ([`87077a1`](https://github.com/lowRISC/dvsim/commit/87077a141f0d149141cefa0d7f3ae5ab8da4313f))
+
+- Summary json link name
+  ([`320b697`](https://github.com/lowRISC/dvsim/commit/320b69743fbd998a444c3497aec4ecc134b8347b))
+
+- Upper case the block names to match the previous reports
+  ([`8f2e2eb`](https://github.com/lowRISC/dvsim/commit/8f2e2eb3133fe5aeb0485ea733280e28666e000d))
+
+### Refactoring
+
+- Improve data models
+  ([`c9317aa`](https://github.com/lowRISC/dvsim/commit/c9317aa8ad15bbc10cca4088f4c086fe7b909a83))
+
+
 ## v1.3.0 (2025-11-18)
 
 ### Features
