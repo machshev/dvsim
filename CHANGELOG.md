@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.6.0 (2025-11-25)
+
+### Features
+
+- Summary report more dashboard like
+  ([`a784cb2`](https://github.com/lowRISC/dvsim/commit/a784cb2a2c2209799d08e5a41bd6fc99b01102e5))
+
+
 ## v1.5.0 (2025-11-21)
 
 ### Bug Fixes
