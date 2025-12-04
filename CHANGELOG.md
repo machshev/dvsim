@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.6.1 (2025-12-04)
+
+### Bug Fixes
+
+- Don't use python311 datetime alias
+  ([`96b7c76`](https://github.com/lowRISC/dvsim/commit/96b7c765de2a025c62331683591d310d1ed8bf00))
+
+
 ## v1.6.0 (2025-11-25)
 
 ### Features
