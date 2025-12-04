@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.6.2 (2025-12-04)
+
+### Bug Fixes
+
+- Add failure buckets data model back in
+  ([`f89dc31`](https://github.com/lowRISC/dvsim/commit/f89dc31725453d242122b2dee48a8c3542ac8d52))
+
+
 ## v1.6.1 (2025-12-04)
 
 ### Bug Fixes
