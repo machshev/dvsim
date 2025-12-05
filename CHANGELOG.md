@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.6.3 (2025-12-05)
+
+### Bug Fixes
+
+- Add failure buckets back into block report templates
+  ([`b601833`](https://github.com/lowRISC/dvsim/commit/b6018333ea657c0ca52a01acc1ec8af9b518dc28))
+
+
 ## v1.6.2 (2025-12-04)
 
 ### Bug Fixes
