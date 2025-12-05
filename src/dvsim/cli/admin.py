@@ -8,9 +8,6 @@ from pathlib import Path
 
 import click
 
-from dvsim.report.data import ResultsSummary
-from dvsim.report.generate import gen_block_report
-
 
 @click.group()
 def cli() -> None:
@@ -38,11 +35,30 @@ def report() -> None:
 )
 def gen(json_path: Path, output_dir: Path) -> None:
     """Generate a report from a existing results JSON."""
-    from dvsim.report.generate import gen_summary_report
+    from dvsim.report.data import ResultsSummary
+    from dvsim.report.generate import gen_block_report, gen_summary_report
 
-    results: ResultsSummary = ResultsSummary.load(path=json_path)
+    results = ResultsSummary.load(path=json_path)
 
     gen_summary_report(summary=results, path=output_dir)
 
     for flow_result in results.flow_results.values():
         gen_block_report(flow_result, path=output_dir)
+
+
+@report.command()
+@click.argument(
+    "json_path",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, path_type=Path),
+)
+def show(json_path: Path) -> None:
+    """Print CLI report to terminal from a existing results JSON."""
+    from dvsim.report.generate import print_summary_report, print_block_report
+    from dvsim.report.data import ResultsSummary
+
+    results: ResultsSummary.load(path=json_path)
+
+    for flow_result in results.flow_results.values():
+        print_block_report(flow_result)
+
+    print_summary_report(summary=results)

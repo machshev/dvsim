@@ -13,6 +13,8 @@ from dvsim.templates.render import render_template
 __all__ = (
     "gen_block_report",
     "gen_summary_report",
+    "print_block_report",
+    "print_summary_report",
 )
 
 
@@ -46,6 +48,36 @@ def gen_block_report(results: FlowResults, path: Path) -> None:
     )
 
 
+def print_block_report(results: FlowResults) -> None:
+    """Print a block report to the terminal.
+
+    Args:
+        summary: overview of the block results
+
+    """
+    print(
+        render_template(
+            path="reports/block_report.md",
+            data={"results": results},
+        )
+    )
+
+
+def print_summary_report(summary: ResultsSummary) -> None:
+    """Print a summary report to the terminal.
+
+    Args:
+        summary: overview of the block results
+
+    """
+    print(
+        render_template(
+            path="reports/summary_report.md",
+            data={"summary": summary},
+        )
+    )
+
+
 def gen_summary_report(summary: ResultsSummary, path: Path) -> None:
     """Generate a summary report.
 
@@ -65,8 +97,6 @@ def gen_summary_report(summary: ResultsSummary, path: Path) -> None:
     (path / "index.html").write_text(
         render_template(
             path="reports/summary_report.html",
-            data={
-                "summary": summary,
-            },
+            data={"summary": summary},
         ),
     )
