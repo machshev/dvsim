@@ -132,7 +132,7 @@ class BucketedFailures(BaseModel):
 
                 buckets[bucket].append(
                     JobFailureOverview(
-                        name=job_status.full_name,
+                        name=job_status.name,
                         seed=job_status.seed,
                         line=job_status.fail_msg.line_number,
                         log_context=job_status.fail_msg.context,
