@@ -12,6 +12,7 @@ from dvsim.templates.render import render_template
 
 __all__ = (
     "gen_block_report",
+    "gen_reports",
     "gen_summary_report",
 )
 
@@ -70,3 +71,17 @@ def gen_summary_report(summary: ResultsSummary, path: Path) -> None:
             },
         ),
     )
+
+
+def gen_reports(summary: ResultsSummary, path: Path) -> None:
+    """Generate a full set of reports for the given regression run.
+
+    Args:
+        summary: overview of the block results
+        path: output directory path
+
+    """
+    gen_summary_report(summary=summary, path=path)
+
+    for flow_result in summary.flow_results.values():
+        gen_block_report(results=flow_result, path=path)
