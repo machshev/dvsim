@@ -21,7 +21,7 @@ from dvsim.job.data import CompletedJobStatus
 from dvsim.launcher.factory import get_launcher_cls
 from dvsim.logging import log
 from dvsim.report.data import FlowResults, IPMeta, ResultsSummary
-from dvsim.report.generate import gen_block_report, gen_summary_report
+from dvsim.report.generate import gen_block_report, gen_reports
 from dvsim.scheduler import Scheduler
 from dvsim.utils import (
     find_and_substitute_wildcards,
@@ -480,7 +480,7 @@ class FlowCfg(ABC):
 
             all_flow_results[block_result_index] = flow_results
 
-            # Write results to the report area.
+            # Generate the block's JSON/HTML reports to the report area.
             gen_block_report(
                 results=flow_results,
                 path=reports_dir,
@@ -511,8 +511,8 @@ class FlowCfg(ABC):
                 report_path=reports_dir,
             )
 
-            # Write results to the report area.
-            gen_summary_report(
+            # Generate all the JSON/HTML reports to the report area.
+            gen_reports(
                 summary=results_summary,
                 path=reports_dir,
             )
