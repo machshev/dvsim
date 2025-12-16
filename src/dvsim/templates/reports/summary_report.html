@@ -92,10 +92,12 @@
                     {% for block_name in summary.flow_results.keys()|sort %}
                         {% set flow = summary.flow_results[block_name] %}
                         <tr>
-                            <td>
-                                <a href="{{ block_name }}.html">
+                            <td class="btn"
+                                hx-get="{{ block_name }}.html"
+                                hx-trigger="click"
+                                hx-push-url="true"
+                                hx-target="#report-content">
                                     {{ block_name | upper }}
-                                </a>
                             </td>
                             <td>{{ flow.passed }}</td>
                             <td>{{ flow.total }}</td>
