@@ -62,8 +62,14 @@ def gen_summary_report(summary: ResultsSummary, path: Path) -> None:
     # Save the JSON version
     (path / "index.json").write_text(summary.model_dump_json())
 
+    # Generate style CSS
+    (path / "style.css").write_text(render_template(path="reports/style.css"))
+
+    # HTMX wrapper
+    (path / "index.html").write_text(render_template(path="reports/wrapper.html"))
+
     # Generate HTML report
-    (path / "index.html").write_text(
+    (path / "summary.html").write_text(
         render_template(
             path="reports/summary_report.html",
             data={

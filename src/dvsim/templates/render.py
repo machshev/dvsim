@@ -38,4 +38,4 @@ def render_template(path: str, data: Mapping[str, object] | None = None) -> str:
 
     template = _env.get_template(path)
 
-    return template.render(data)
+    return template.render(data or {})
