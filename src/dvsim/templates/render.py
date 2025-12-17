@@ -9,12 +9,29 @@ DVSim. Templates can be referenced relative to this directory.
 """
 
 from collections.abc import Mapping
+from importlib import resources
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 __all__ = ("render_template",)
 
 _env: Environment | None = None
+
+
+def render_static(path: str) -> str:
+    """Render static files packaged with DVSim.
+
+    Args:
+        path: relative path to the DVSim template directory
+
+    Returns:
+        string containing the static file content
+
+    """
+    return resources.read_text(
+        "dvsim",
+        f"templates/static/{path}",
+    )
 
 
 def render_template(path: str, data: Mapping[str, object] | None = None) -> str:
