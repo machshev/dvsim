@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dvsim.logging import log
 from dvsim.report.data import FlowResults, ResultsSummary
-from dvsim.templates.render import render_template
+from dvsim.templates.render import render_static, render_template
 
 __all__ = (
     "gen_block_report",
@@ -63,7 +63,16 @@ def gen_summary_report(summary: ResultsSummary, path: Path) -> None:
     (path / "index.json").write_text(summary.model_dump_json())
 
     # Generate style CSS
-    (path / "style.css").write_text(render_template(path="reports/style.css"))
+    for name in (
+        "css/style.css",
+        "css/bootstrap.min.css",
+        "js/bootstrap.bundle.min.js",
+        "js/htmx.min.js",
+    ):
+        output = path / name
+
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(render_static(path=name))
 
     # HTMX wrapper
     (path / "index.html").write_text(render_template(path="reports/wrapper.html"))
