@@ -25,7 +25,12 @@ IGNORE_NAMES = [
     "CHANGELOG.md",
 ]
 
-IGNORE_SUFFIXES = [".lock"]
+IGNORE_SUFFIXES = [
+    ".lock",  # lock files are generated files
+    ".min.js",  # Vendored in JS files
+    ".bundle.min.js",  # Vendored in JS files
+    ".min.css",  # Vendored in CSS files
+]
 
 OPTIONAL_TRAILING_NEWLINE = [".nix", ".md"]
 
