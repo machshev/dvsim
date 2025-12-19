@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v1.7.0 (2025-12-19)
+
+### Features
+
+- Block results report HTMX
+  ([`e4522bd`](https://github.com/lowRISC/dvsim/commit/e4522bdca05b012c0d7f95c2583cc7e290f263ed))
+
+- CORS
+  ([`d6fc380`](https://github.com/lowRISC/dvsim/commit/d6fc3802d5a2ce7f13e26a9861df5d432c22156d))
+
+- Create htmx wrapper for the summary page
+  ([`7690af4`](https://github.com/lowRISC/dvsim/commit/7690af48f5727fdc8fe863670eb3c06ba46d37bc))
+
+- Local copies of the js/css deps to enable sandboxed builds
+  ([`dc18f96`](https://github.com/lowRISC/dvsim/commit/dc18f9671b3a2e58865ff697aac6b86b30672e30))
+
+### Refactoring
+
+- Create a higher level function to generate all reports
+  ([`ca9cc18`](https://github.com/lowRISC/dvsim/commit/ca9cc188ca9f4098adcd4559adcaa71e4884e1d1))
+
+- Report use the local css/js
+  ([`182e9cb`](https://github.com/lowRISC/dvsim/commit/182e9cbfaf0857cf295c1e04cc616e33aa6a81be))
+
+
 ## v1.6.3 (2025-12-05)
 
 ### Bug Fixes
