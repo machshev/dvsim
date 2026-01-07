@@ -367,7 +367,7 @@ class FlowCfg(ABC):
     def prune_selected_cfgs(self) -> None:
         """Prune the list of configs for a primary config file."""
         # This should run after self.cfgs has been set
-        assert self.cfgs
+        assert self.cfgs or self.cfgs == []
 
         # If the user didn't pass --select-cfgs, we don't do anything.
         if self.select_cfgs is None:
