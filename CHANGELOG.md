@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.7.1 (2026-01-08)
+
+### Bug Fixes
+
+- Render_static works pre python 3.13
+  ([`5b68d0d`](https://github.com/lowRISC/dvsim/commit/5b68d0df34249e754c3328e45783ed96b33aad6b))
+
+### Continuous Integration
+
+- Prevent fail fast
+  ([`e0958eb`](https://github.com/lowRISC/dvsim/commit/e0958eb8b659ca431646d6aae8e843e86f2a94f4))
+
+### Testing
+
+- Static content rendering
+  ([`7989ba7`](https://github.com/lowRISC/dvsim/commit/7989ba75886fee4aecaa33e43e4fb8089405513a))
+
+
 ## v1.7.0 (2025-12-19)
 
 ### Features
