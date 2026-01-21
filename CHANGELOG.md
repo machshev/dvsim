@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.7.3 (2026-01-21)
+
+### Bug Fixes
+
+- Formal flow
+  ([`bd28563`](https://github.com/lowRISC/dvsim/commit/bd2856360b8ca5355e860f7fb9c3d3888d4663e8))
+
+
 ## v1.7.2 (2026-01-21)
 
 ### Bug Fixes
