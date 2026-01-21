@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.7.2 (2026-01-21)
+
+### Bug Fixes
+
+- Hacky workaround for sim centric code
+  ([`596d92f`](https://github.com/lowRISC/dvsim/commit/596d92fa4b0e69bf69b3b23e086db0ba72e3d0aa))
+
+- Restore the lint flow old style report
+  ([`85d8550`](https://github.com/lowRISC/dvsim/commit/85d8550db2fb4f3404ac6c96dc8baf64e8fd44bb))
+
+### Refactoring
+
+- Move sim related modules to top level package
+  ([`9e31623`](https://github.com/lowRISC/dvsim/commit/9e31623a722e3ef4e500dc83072c49f5da803fd0))
+
+
 ## v1.7.1 (2026-01-08)
 
 ### Bug Fixes
