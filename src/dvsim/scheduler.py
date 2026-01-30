@@ -19,6 +19,7 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any
 
 from dvsim.job.data import CompletedJobStatus, JobSpec
+from dvsim.job.status import JobStatus
 from dvsim.launcher.base import Launcher, LauncherBusyError, LauncherError
 from dvsim.logging import log
 from dvsim.utils.status_printer import get_status_printer
@@ -150,10 +151,9 @@ class Scheduler:
             self._status_printer.init_target(target=target, msg=msg)
 
         # A map from the job names tracked by this class to their
-        # current status. This status is 'Q', 'D', 'P', 'F' or 'K',
-        # corresponding to membership in the dicts above. This is not
-        # per-target.
-        self.job_status: MutableMapping[str, str] = {}
+        # current status, corresponding to membership in the dicts
+        # above. This is not per-target.
+        self.job_status: MutableMapping[str, JobStatus] = {}
 
         # Create the launcher instance for all items.
         self._launchers: Mapping[str, Launcher] = {
@@ -298,7 +298,7 @@ class Scheduler:
                 msg = f"Job {next_job_name} already scheduled"
                 raise RuntimeError(msg)
 
-            self.job_status[next_job_name] = "Q"
+            self.job_status[next_job_name] = JobStatus.QUEUED
             self._queued[target].append(next_job_name)
             self._unschedule_item(next_job_name)
 
@@ -404,7 +404,7 @@ class Scheduler:
                 return False
 
             # Has the dep completed?
-            if self.job_status[dep] not in ["P", "F", "K"]:
+            if not self.job_status[dep].ended:
                 return False
 
         return True
@@ -432,14 +432,14 @@ class Scheduler:
                 continue
 
             dep_status = self.job_status[dep_name]
-            if dep_status not in ["P", "F", "K"]:
-                raise ValueError("Status must be one of P, F, or K")
+            if not dep_status.ended:
+                msg = f"Expected dependent job {dep_name} to be ended, not {dep_status.name}."
+                raise ValueError(msg)
 
             if job.needs_all_dependencies_passing:
-                if dep_status in ["F", "K"]:
+                if dep_status != JobStatus.PASSED:
                     return False
-
-            elif dep_status in ["P"]:
+            elif dep_status == JobStatus.PASSED:
                 return True
 
         return job.needs_all_dependencies_passing
@@ -479,20 +479,20 @@ class Scheduler:
                     status = self._launchers[job_name].poll()
                 except LauncherError as e:
                     log.error("Error when dispatching target: %s", str(e))
-                    status = "K"
+                    status = JobStatus.KILLED
                 level = log.VERBOSE
 
-                if status not in ["D", "P", "F", "E", "K"]:
-                    msg = f"Status must be one of D, P, F, E or K but found {status}"
+                if status is None:
+                    msg = "Expected a valid job status but got None instead."
                     raise ValueError(msg)
 
-                if status == "D":
+                if status == JobStatus.DISPATCHED:
                     continue
 
-                if status == "P":
+                if status == JobStatus.PASSED:
                     self._passed[target].add(job_name)
 
-                elif status == "F":
+                elif status == JobStatus.FAILED:
                     self._failed[target].add(job_name)
                     level = log.ERROR
 
@@ -511,7 +511,7 @@ class Scheduler:
                     hms,
                     target,
                     job_name,
-                    status,
+                    status.shorthand,
                 )
 
                 # Enqueue item's successors regardless of its status.
@@ -556,7 +556,7 @@ class Scheduler:
             return
 
         self._running[target].append(job_name)
-        self.job_status[job_name] = "D"
+        self.job_status[job_name] = JobStatus.DISPATCHED
 
     def _dispatch(self, hms: str) -> None:
         """Dispatch some queued items if possible.
@@ -698,7 +698,7 @@ class Scheduler:
 
         """
         target = self._jobs[job_name].target
-        self.job_status[job_name] = "K"
+        self.job_status[job_name] = JobStatus.KILLED
         self._killed[target].add(job_name)
         if job_name in self._queued[target]:
             self._queued[target].remove(job_name)
@@ -717,7 +717,7 @@ class Scheduler:
         """
         target = self._jobs[job_name].target
         self._launchers[job_name].kill()
-        self.job_status[job_name] = "K"
+        self.job_status[job_name] = JobStatus.KILLED
         self._killed[target].add(job_name)
         self._running[target].remove(job_name)
         self._cancel_successors(job_name)
