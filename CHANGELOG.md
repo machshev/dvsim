@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.7.4 (2026-02-05)
+
+### Bug Fixes
+
+- Fix/add --version option to the CLIs
+  ([`c2c7c78`](https://github.com/lowRISC/dvsim/commit/c2c7c7832c487b1269d2f4e2efe08f4cf6d0382f))
+
+
 ## v1.7.3 (2026-01-21)
 
 ### Bug Fixes
