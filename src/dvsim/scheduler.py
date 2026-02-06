@@ -482,10 +482,6 @@ class Scheduler:
                     status = JobStatus.KILLED
                 level = log.VERBOSE
 
-                if status is None:
-                    msg = "Expected a valid job status but got None instead."
-                    raise ValueError(msg)
-
                 if status == JobStatus.DISPATCHED:
                     continue
 
