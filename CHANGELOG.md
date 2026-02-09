@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v1.7.6 (2026-02-09)
+
+### Bug Fixes
+
+- Replace 'E' local launcher poll status with a LauncherError
+  ([`612011b`](https://github.com/lowRISC/dvsim/commit/612011bcd62d62addecb2918539b106bd7b3d5e3))
+
+- Resolve JobSpec/str type error
+  ([`e73575c`](https://github.com/lowRISC/dvsim/commit/e73575c460b14964377b26bb04d2460bc2cd8c9b))
+
+### Refactoring
+
+- Launcher poll always returns a status
+  ([`4590ff8`](https://github.com/lowRISC/dvsim/commit/4590ff8d61a1234e7e5c8e28a67e366e47d406dc))
+
+- Make Job Status an Enum
+  ([`c75c923`](https://github.com/lowRISC/dvsim/commit/c75c9238e9c606073740ef527bf37c55471a18a6))
+
+- Replace assert with RuntimeError
+  ([`39ec250`](https://github.com/lowRISC/dvsim/commit/39ec250c3f43a169ecb1eabe09feb3af1f6fe81d))
+
+- Resolve scheduler complexity lint warnings
+  ([`8010a89`](https://github.com/lowRISC/dvsim/commit/8010a89f7d4d6baaf612b653d1499cae2758b1ae))
+
+
 ## v1.7.5 (2026-02-09)
 
 ### Bug Fixes
