@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v1.7.5 (2026-02-09)
+
+### Bug Fixes
+
+- Don't ignore input header message in EnlightenStatusPrinter
+  ([`1a0f2dd`](https://github.com/lowRISC/dvsim/commit/1a0f2dd91e6274f3854684d07da0e63114f94938))
+
+- Explicitly stop EnlightenStatusPrinter manager
+  ([`cc9e703`](https://github.com/lowRISC/dvsim/commit/cc9e703b247fa44f0a2752529b52fd4a88e53e71))
+
+- Handle EnlightenStatusPrinter early exit error
+  ([`076b249`](https://github.com/lowRISC/dvsim/commit/076b2493b45641a1c27034644d0d8bc299a3bf81))
+
+
 ## v1.7.4 (2026-02-05)
 
 ### Bug Fixes
