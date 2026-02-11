@@ -2,6 +2,52 @@
 
 <!-- version list -->
 
+## v1.8.0 (2026-02-11)
+
+### Build System
+
+- Add `pytest-repeat` and `pytest-xdist` test development deps
+  ([`54343fb`](https://github.com/lowRISC/dvsim/commit/54343fbadd862432104e457bcb5962e60447164a))
+
+- Add `pytest-timeout` test dependency
+  ([`4b2f0ad`](https://github.com/lowRISC/dvsim/commit/4b2f0ad1c3990f7f0b92a422cb60d81f82fec67f))
+
+### Continuous Integration
+
+- Make test runs strict
+  ([`f9082e0`](https://github.com/lowRISC/dvsim/commit/f9082e08a10c0eb409f6444a31582df57fbf6991))
+
+### Features
+
+- Add scheduler Job/Launcher mocks
+  ([`08f569e`](https://github.com/lowRISC/dvsim/commit/08f569ef07cd36e2d6db522b38f73d487f648a7f))
+
+### Refactoring
+
+- Make scheduler interactivity default to false
+  ([`2b2d154`](https://github.com/lowRISC/dvsim/commit/2b2d1546b56032163da290fb834eef8b2856a147))
+
+### Testing
+
+- Add more scheduler tests
+  ([`2a59a3a`](https://github.com/lowRISC/dvsim/commit/2a59a3af9a3ce9b3273e56555697073ae934a354))
+
+- Add scheduler priority/weighting tests
+  ([`332146a`](https://github.com/lowRISC/dvsim/commit/332146ae17714a7607f72b31b86d086ccb290974))
+
+- Add scheduler signal handler tests
+  ([`2fe396a`](https://github.com/lowRISC/dvsim/commit/2fe396a3d158b275c757564f8ecca9237df6427b))
+
+- Add scheduler structural/dependency tests
+  ([`dcb512a`](https://github.com/lowRISC/dvsim/commit/dcb512a29d8609fb6696dde9b0f275842bb93898))
+
+- Add scheduler testing utilities & initial tests
+  ([`a0aa678`](https://github.com/lowRISC/dvsim/commit/a0aa678d397db1f34ce1bb9155ce8a8f572ccd0e))
+
+- Enable parallel pytest coverage
+  ([`c9c0d38`](https://github.com/lowRISC/dvsim/commit/c9c0d38308960a63c9bcc8931cffeb3b5ec0cba4))
+
+
 ## v1.7.7 (2026-02-11)
 
 ### Bug Fixes
