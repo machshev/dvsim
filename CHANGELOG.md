@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.7.7 (2026-02-11)
+
+### Bug Fixes
+
+- `pyproject.toml` license spelling
+  ([`ee24711`](https://github.com/lowRISC/dvsim/commit/ee247111393603658698df5117e8470d5714a584))
+
+### Continuous Integration
+
+- Pass CI dependency license check requirements
+  ([`dd90bea`](https://github.com/lowRISC/dvsim/commit/dd90bea659bbf148b7a71842fcc99be27a154d9a))
+
+
 ## v1.7.6 (2026-02-09)
 
 ### Bug Fixes
