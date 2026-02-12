@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.8.1 (2026-02-12)
+
+### Bug Fixes
+
+- Remove deadlocks by making the scheduler signal handler signal-safe
+  ([`e9ed090`](https://github.com/lowRISC/dvsim/commit/e9ed090b375941911e9a605fc5428d15aec20bc5))
+
+### Testing
+
+- Mark scheduler signal tests as expected to pass
+  ([`5400046`](https://github.com/lowRISC/dvsim/commit/54000465f12a983f78ad9e623906650df04edc23))
+
+
 ## v1.8.0 (2026-02-11)
 
 ### Build System
