@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.10.1 (2026-02-23)
+
+### Bug Fixes
+
+- Add job tool metadata to instrumentation report
+  ([`d8d3f52`](https://github.com/lowRISC/dvsim/commit/d8d3f521c1e48bad079117da2a1eb98503ff02e8))
+
+- Remove per-job per-core avg util from resource instrumentation
+  ([`a63b91e`](https://github.com/lowRISC/dvsim/commit/a63b91edb008a227531cc7b1aed7105adff69836))
+
+
 ## v1.10.0 (2026-02-18)
 
 ### Bug Fixes
