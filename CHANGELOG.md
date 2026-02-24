@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.10.2 (2026-02-24)
+
+### Refactoring
+
+- Add more scheduler resource instrumentation
+  ([`161f13f`](https://github.com/lowRISC/dvsim/commit/161f13f0c5a71dd498eea4ce02f51e228e7ed463))
+
+
 ## v1.10.1 (2026-02-23)
 
 ### Bug Fixes
