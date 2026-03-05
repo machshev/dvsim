@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.11.4 (2026-03-05)
+
+### Bug Fixes
+
+- Broken ruff lint
+  ([`d10d401`](https://github.com/lowRISC/dvsim/commit/d10d4011c75b73c26d01f05c94687ecdab8881c6))
+
+
 ## v1.11.3 (2026-03-05)
 
 ### Bug Fixes
