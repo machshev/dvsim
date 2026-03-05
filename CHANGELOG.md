@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.11.0 (2026-03-05)
+
+### Features
+
+- Add optional logging to a logfile
+  ([`8f5dff8`](https://github.com/lowRISC/dvsim/commit/8f5dff80e935cbe824ed30d845888c500ff0510d))
+
+- Implement logzero functionality directly
+  ([`7488f34`](https://github.com/lowRISC/dvsim/commit/7488f348f5307493af8d2a02c610a18881f4a91a))
+
+
 ## v1.10.2 (2026-02-24)
 
 ### Refactoring
