@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v1.11.3 (2026-03-05)
+
+### Bug Fixes
+
+- Attach DVSim version to individual block reports
+  ([`df52926`](https://github.com/lowRISC/dvsim/commit/df529263e8c547255a24cf3810155ad03ff6a4d7))
+
+- Avoid duplicate block report generation for primary configs
+  ([`3e92f48`](https://github.com/lowRISC/dvsim/commit/3e92f48f7c6377fc1cf9885ffdbb38bc5964762e))
+
+- Block report coverage omission
+  ([`1b6df51`](https://github.com/lowRISC/dvsim/commit/1b6df51a82c1482f26d51cc21e2afc3cc5226431))
+
+- Incorrect result model with `---map-full-testplan`
+  ([`b29bd6a`](https://github.com/lowRISC/dvsim/commit/b29bd6af88f3da82bd4ff21d25034f071e82fe6c))
+
+- Make report stage table accordion & error buckets optional
+  ([`7df2902`](https://github.com/lowRISC/dvsim/commit/7df290289d126f12793455b2556ec28f37310d7a))
+
+- Stop auto-collapsing accordion in block HTML report
+  ([`cb6e158`](https://github.com/lowRISC/dvsim/commit/cb6e1585ebfbd7a0d19030886ff0bf3b0ae34dbf))
+
+- Use variant name in HTML reports
+  ([`8872455`](https://github.com/lowRISC/dvsim/commit/8872455970673d53f4b10019d47f61c6596cd97b))
+
+### Refactoring
+
+- Reduce variant name duplication
+  ([`718ca1d`](https://github.com/lowRISC/dvsim/commit/718ca1d2acd8679a03473bcea3c182a7be959db3))
+
+
 ## v1.11.2 (2026-03-05)
 
 ### Bug Fixes
