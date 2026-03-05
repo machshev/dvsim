@@ -10,7 +10,13 @@ from typing import cast
 
 from logzero import DEFAULT_FORMAT, setup_logger
 
-__all__ = ("configure_logging",)
+__all__ = (
+    "configure_logging",
+    "LOG_LEVELS",
+)
+
+
+LOG_LEVELS = ["DEBUG", "VERBOSE", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class DVSimLogger(logging.getLoggerClass()):
@@ -63,14 +69,30 @@ def _build_logger() -> DVSimLogger:
 log = _build_logger()
 
 
-def configure_logging(*, verbose: bool, debug: bool) -> None:
-    """Configure the Logger."""
-    # Add log level 'VERBOSE' between INFO and DEBUG
-    if debug:
-        log_level = logging.DEBUG
-    elif verbose:
-        log_level = log.VERBOSE
-    else:
-        log_level = logging.INFO
+def configure_logging(*, verbose: bool, debug: bool, log_level: str | None, log_file: str) -> None:
+    """Configure the Logger.
 
-    log.setLevel(log_level)
+    Explicitly setting the log_level takes precedence. But if this is not set
+    then the debug and verbose flags are checked in that order. The default
+    logging level is INFO.
+    """
+    if log_level and log_level in LOG_LEVELS:
+        new_log_level: int = getattr(log, log_level)
+    elif debug:
+        new_log_level = log.DEBUG
+    elif verbose:
+        new_log_level = log.VERBOSE
+    else:
+        new_log_level: int = log.INFO
+
+    log.setLevel(new_log_level)
+
+    # Push the same level down to the existing stream handler
+    for handler in log.handlers:
+        handler.setLevel(new_log_level)
+
+    if log_file:
+        log.set_logfile(
+            path=Path(log_file),
+            level=log_level,
+        )
