@@ -5,11 +5,12 @@
 
 """Check all files for license header."""
 
+import logging
 import subprocess
 import sys
 from pathlib import Path
 
-from logzero import logger
+logger = logging.getLogger(__name__)
 
 LICENSE = (
     "Copyright lowRISC contributors (OpenTitan project).",
@@ -36,7 +37,7 @@ OPTIONAL_TRAILING_NEWLINE = [".nix", ".md"]
 
 
 def check_header(*, text: str, trailing_newline_optional: bool = False) -> bool:
-    """Check header complies with license requirmeents."""
+    """Check header complies with license requirements."""
     lines = text.splitlines()
 
     try:
@@ -92,6 +93,6 @@ for f in p.stdout.decode(encoding="utf8").splitlines():
         failed.append(path)
 
 for path in failed:
-    logger.error(f"failed: {path}")
+    logger.error("failed: %s", path)
 
 sys.exit(min(len(failed), 255))

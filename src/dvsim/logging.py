@@ -5,10 +5,9 @@
 """Logging config."""
 
 import logging
+import sys
 from pathlib import Path
 from typing import cast
-
-from logzero import DEFAULT_FORMAT, setup_logger
 
 __all__ = (
     "configure_logging",
@@ -17,6 +16,33 @@ __all__ = (
 
 
 LOG_LEVELS = ["DEBUG", "VERBOSE", "INFO", "WARNING", "ERROR", "CRITICAL"]
+DEFAULT_FORMAT = (
+    "%(color)s[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d]%(end_color)s %(message)s"
+)
+_PLAIN_FORMAT = "[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d] %(message)s"
+_DATE_FORMAT = "%y%m%d %H:%M:%S"
+
+_VERBOSE_LOG_LEVEL = 15
+
+# ANSI color codes keyed by level
+_LEVEL_COLORS = {
+    logging.DEBUG: "\033[36m",  # Cyan
+    _VERBOSE_LOG_LEVEL: "\033[34m",  # Blue  (VERBOSE)
+    logging.INFO: "\033[32m",  # Green
+    logging.WARNING: "\033[33m",  # Yellow
+    logging.ERROR: "\033[31m",  # Red
+    logging.CRITICAL: "\033[31;1m",  # Bold red
+}
+_RESET = "\033[0m"
+
+
+class _ColorFormatter(logging.Formatter):
+    """Formatter that injects %(color)s / %(end_color)s into records."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        record.color = _LEVEL_COLORS.get(record.levelno, "")
+        record.end_color = _RESET if record.color else ""
+        return super().format(record)
 
 
 class DVSimLogger(logging.getLoggerClass()):
@@ -27,7 +53,7 @@ class DVSimLogger(logging.getLoggerClass()):
     ERROR = logging.ERROR
     WARNING = logging.WARNING
     INFO = logging.INFO
-    VERBOSE = 15
+    VERBOSE = _VERBOSE_LOG_LEVEL
     DEBUG = logging.DEBUG
 
     def __init__(self, name: str) -> None:
@@ -49,12 +75,8 @@ class DVSimLogger(logging.getLoggerClass()):
     ) -> None:
         """Set a logfile to save the logs to."""
         fh = logging.FileHandler(filename=path, mode=mode)
-
-        fh.setLevel(level or self.DEBUG)
-        fh.setFormatter(
-            logging.Formatter(DEFAULT_FORMAT),
-        )
-
+        fh.setLevel(level if level is not None else self.DEBUG)
+        fh.setFormatter(logging.Formatter(_PLAIN_FORMAT, datefmt=_DATE_FORMAT))
         self.addHandler(fh)
 
 
@@ -62,7 +84,27 @@ def _build_logger() -> DVSimLogger:
     """Build a DVSim logger."""
     logging.setLoggerClass(DVSimLogger)
 
-    return cast("DVSimLogger", setup_logger("dvsim"))
+    logger = cast("DVSimLogger", logging.getLogger("dvsim"))
+
+    # Attach a stderr handler with colour formatting (mirrors logzero default)
+    if not logger.handlers:
+        sh = logging.StreamHandler(sys.stderr)
+        sh.setFormatter(_ColorFormatter(DEFAULT_FORMAT, datefmt=_DATE_FORMAT))
+        logger.addHandler(sh)
+
+    # Prevent log records bubbling up to the root logger
+    logger.propagate = False
+
+    # Log any unhandled exceptions
+    _previous_excepthook = sys.excepthook
+
+    def _handle_exception(exc_type, exc_value, exc_tb):
+        logger.critical("Unhandled exception", exc_info=(exc_type, exc_value, exc_tb))
+        _previous_excepthook(exc_type, exc_value, exc_tb)
+
+    sys.excepthook = _handle_exception
+
+    return logger
 
 
 # Logger to import
@@ -94,5 +136,5 @@ def configure_logging(*, verbose: bool, debug: bool, log_level: str | None, log_
     if log_file:
         log.set_logfile(
             path=Path(log_file),
-            level=log_level,
+            level=new_log_level,
         )
