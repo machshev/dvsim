@@ -42,7 +42,7 @@ from dvsim.launcher.lsf import LsfLauncher
 from dvsim.launcher.nc import NcLauncher
 from dvsim.launcher.sge import SgeLauncher
 from dvsim.launcher.slurm import SlurmLauncher
-from dvsim.logging import configure_logging, log
+from dvsim.logging import configure_logging, log, LOG_LEVELS
 from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG, Timer, rm_path, run_cmd_with_timeout
 
 # The different categories that can be passed to the --list argument.
@@ -324,6 +324,18 @@ def parse_args(argv: list[str] | None = None):
             "list can be filtered with a space-separated "
             "of categories from: {}.".format(", ".join(_LIST_CATEGORIES))
         ),
+    )
+
+    parser.add_argument(
+        "--log-level",
+        choices=LOG_LEVELS,
+        default=None,
+        help="Set the log level (defaults to INFO).",
+    )
+    parser.add_argument(
+        "--log-file",
+        type=Path,
+        help="Writes logs to a specific file (as well as to stderr).",
     )
 
     whatg = parser.add_argument_group("Choosing what to run")
@@ -833,6 +845,8 @@ def main(argv: list[str] | None = None) -> None:
     configure_logging(
         verbose=args.verbose is not None,
         debug=args.verbose == "debug",
+        log_level=args.log_level,
+        log_file=args.log_file,
     )
 
     if not Path(args.cfg).exists():
