@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.11.1 (2026-03-05)
+
+### Refactoring
+
+- Convert status printer to singleton & keep context until end
+  ([`4acf367`](https://github.com/lowRISC/dvsim/commit/4acf367c68c34dde9cdbad24a7e04fddee4ead2b))
+
+
 ## v1.11.0 (2026-03-05)
 
 ### Features
