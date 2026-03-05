@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.11.2 (2026-03-05)
+
+### Bug Fixes
+
+- Track error results seen in sim flows
+  ([`c75cfe8`](https://github.com/lowRISC/dvsim/commit/c75cfe81dfc407d6f033787d078cd6ae3677cb47))
+
+
 ## v1.11.1 (2026-03-05)
 
 ### Refactoring
