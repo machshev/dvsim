@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.11.5 (2026-03-06)
+
+### Bug Fixes
+
+- Calculate git url for reports
+  ([`aeac114`](https://github.com/lowRISC/dvsim/commit/aeac114acda339038d901a803a07337c2fafde4b))
+
+### Chores
+
+- Update nix flake to pull in latest ruff version
+  ([`0b461c0`](https://github.com/lowRISC/dvsim/commit/0b461c0b656a2f87122f2d10332ecc359ce797e3))
+
+
 ## v1.11.4 (2026-03-05)
 
 ### Bug Fixes
