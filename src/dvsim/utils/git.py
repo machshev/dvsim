@@ -4,10 +4,11 @@
 
 """Git utility functions."""
 
-import logging as log
 from pathlib import Path
 
 from git import Repo
+
+from dvsim.logging import log
 
 __all__ = ("repo_root",)
 
@@ -32,9 +33,44 @@ def git_commit_hash(path: Path | None = None) -> str:
     root = repo_root(path=path or Path.cwd())
 
     if root is None:
-        log.error("no git repo found at %s", root)
+        log.error("no git repo found at %s", path)
         raise ValueError
 
     r = Repo(root)
 
     return r.head.commit.hexsha
+
+
+def git_origin_url(path: Path | None = None) -> str:
+    """Get the git remote origin url."""
+    root = repo_root(path=path or Path.cwd())
+
+    if root is None:
+        log.error("no git repo found at %s", path)
+        raise ValueError
+
+    r = Repo(root)
+
+    return r.remote().url
+
+
+def git_https_url_with_commit(path: Path | None = None) -> str:
+    """Get an https url that references the current commit.
+
+    Args:
+        path: the path to the git repo
+
+    Returns:
+        str containing the https url
+
+    """
+    url = git_origin_url(path=path)
+    commit = git_commit_hash(path=path)
+
+    url = url.removesuffix(".git")
+
+    prefix = "git@github.com:"
+    if url.startswith(prefix):
+        url = "https://github.com/" + url.removeprefix(prefix)
+
+    return f"{url}/tree/{commit}"

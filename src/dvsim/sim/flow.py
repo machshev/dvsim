@@ -42,7 +42,7 @@ from dvsim.test import Test
 from dvsim.testplan import Testplan
 from dvsim.tool.utils import get_sim_tool_plugin
 from dvsim.utils import TS_FORMAT, rm_path
-from dvsim.utils.git import git_commit_hash
+from dvsim.utils.git import git_commit_hash, git_https_url_with_commit
 
 __all__ = ("SimCfg",)
 
@@ -601,12 +601,14 @@ class SimCfg(FlowCfg):
             results: completed job status objects.
 
         """
+        repo_root = Path(self.proj_root)
         reports_dir = Path(self.scratch_base_path) / "reports"
-        commit = git_commit_hash(path=Path(self.proj_root))
-        url = f"https://github.com/lowrisc/opentitan/tree/{commit}"
+        commit = git_commit_hash(path=repo_root)
+        url = git_https_url_with_commit(path=repo_root)
 
         try:
             dvsim_version = version("dvsim").strip()
+
         except PackageNotFoundError as e:
             log.debug("DVSim package not found: %s", str(e))
             dvsim_version = None
