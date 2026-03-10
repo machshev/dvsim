@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v1.12.0 (2026-03-10)
+
+### Bug Fixes
+
+- Summary/CSS for block HTML reports
+  ([`9653798`](https://github.com/lowRISC/dvsim/commit/9653798f0066b6cac09e9ce4626451800551e668))
+
+### Features
+
+- Add build seed to the sim result reports
+  ([`241fdb3`](https://github.com/lowRISC/dvsim/commit/241fdb334e9f947124268407eade30fc4a5f0645))
+
+- Replace HTMX-driven DOM injection with templated navigable pages
+  ([`8d46972`](https://github.com/lowRISC/dvsim/commit/8d46972629a0df8b2818b52330a171a3388e8df2))
+
+- Summary HTML report navbar brand redirects to root
+  ([`ed67636`](https://github.com/lowRISC/dvsim/commit/ed676365c26d4482eeee1896b14f11c11c628f56))
+
+### Refactoring
+
+- Convert HTML wrapper indentation to spaces
+  ([`6768ec7`](https://github.com/lowRISC/dvsim/commit/6768ec7fb1a1894b6d4e5f6ef1c75b68535b3448))
+
+- Remove deploy cov_results table
+  ([`f49a968`](https://github.com/lowRISC/dvsim/commit/f49a9684e9b8b9fdcde6dae3eaeb1a8f8e86e004))
+
+
 ## v1.11.5 (2026-03-06)
 
 ### Bug Fixes
