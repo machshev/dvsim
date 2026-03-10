@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v1.14.0 (2026-03-10)
+
+### Features
+
+- Add Markdown block report generation for CLI
+  ([`531bbaa`](https://github.com/lowRISC/dvsim/commit/531bbaa6db8224cd601574d70f0d30347edfb06b))
+
+- Add Markdown summary report generation for CLI
+  ([`148e2dc`](https://github.com/lowRISC/dvsim/commit/148e2dc51b183780c3caa276fe1da5775a90c29a))
+
+- Add stubbed Markdown report renderer with CLI summary
+  ([`957f166`](https://github.com/lowRISC/dvsim/commit/957f16668dc25def3caacfd0d3b06c5591e47242))
+
+- Add the coverage report dashboard page to sim summary
+  ([`0e788b0`](https://github.com/lowRISC/dvsim/commit/0e788b0f1c78e83d71a661d465614f36650634a7))
+
+- Record the testplan reference in the sim result summary
+  ([`848d4f1`](https://github.com/lowRISC/dvsim/commit/848d4f185c34b6285e69f39ec3674b2cdce89961))
+
+### Refactoring
+
+- Store qualified name and log path in bucket items
+  ([`76feedf`](https://github.com/lowRISC/dvsim/commit/76feedf393aa9cb8541d78f0bf185dc2e84ef571))
+
+
 ## v1.13.0 (2026-03-10)
 
 ### Bug Fixes
