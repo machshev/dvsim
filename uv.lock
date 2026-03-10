@@ -328,7 +328,7 @@ wheels = [
 
 [[package]]
 name = "dvsim"
-version = "1.12.0"
+version = "1.13.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

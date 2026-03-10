@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.13.0 (2026-03-10)
+
+### Bug Fixes
+
+- Git commit and SimCfg revision info
+  ([`d6d53f6`](https://github.com/lowRISC/dvsim/commit/d6d53f6bf513c5891829106745b31ca831920c8e))
+
+### Features
+
+- Add short option to git commit hash retrieval
+  ([`4923681`](https://github.com/lowRISC/dvsim/commit/49236813c00379c73d8b03e08021aa44ca657bb6))
+
+### Refactoring
+
+- Add sim report renderer abstraction
+  ([`5ded4ae`](https://github.com/lowRISC/dvsim/commit/5ded4aebfd0b71ebc5d51821865d974d024f79a6))
+
+
 ## v1.12.0 (2026-03-10)
 
 ### Bug Fixes
