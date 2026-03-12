@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.14.1 (2026-03-12)
+
+### Bug Fixes
+
+- Set UV_PYTHON in .envrc for NixOS direnv users
+  ([`fdd69e9`](https://github.com/lowRISC/dvsim/commit/fdd69e9cb2192987d92854723e71f70a4e48ac8a))
+
+
 ## v1.14.0 (2026-03-10)
 
 ### Features
