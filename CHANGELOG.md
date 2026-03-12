@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.14.2 (2026-03-12)
+
+### Bug Fixes
+
+- Links in markdown report when proj-root specified
+  ([`2a8d15a`](https://github.com/lowRISC/dvsim/commit/2a8d15a48a77852f46135efc3cc73ccc664b73ad))
+
+- Remove old FlowResults class
+  ([`6daf94a`](https://github.com/lowRISC/dvsim/commit/6daf94af9c3217118b40161ea03a283c2a688ca7))
+
+### Refactoring
+
+- Separate out summary from the full results
+  ([`42f5a65`](https://github.com/lowRISC/dvsim/commit/42f5a65777a966da2bc853e220a5a977b7b58d9b))
+
+
 ## v1.14.1 (2026-03-12)
 
 ### Bug Fixes
