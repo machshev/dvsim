@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.15.0 (2026-03-13)
+
+### Features
+
+- Add dashboard generation
+  ([`2c3f4af`](https://github.com/lowRISC/dvsim/commit/2c3f4af2203ff609ad48728fbcdf14b65e2a8773))
+
+### Refactoring
+
+- Move out the static file content renderer
+  ([`241baf5`](https://github.com/lowRISC/dvsim/commit/241baf5bcab361f1fb0bb155af059cfc957d37ee))
+
+
 ## v1.14.2 (2026-03-12)
 
 ### Bug Fixes
