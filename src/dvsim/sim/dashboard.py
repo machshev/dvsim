@@ -59,3 +59,5 @@ def gen_dashboard(
             },
         )
     )
+
+    (path / "dashboard.json").write_text(summary.model_dump_json())
