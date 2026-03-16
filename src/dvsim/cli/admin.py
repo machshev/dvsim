@@ -43,7 +43,7 @@ def dashboard() -> None:
 )
 def dashboard_gen(json_path: Path, output_dir: Path, base_url: str | None) -> None:
     """Generate a dashboard from a existing results JSON."""
-    from dvsim.sim.dashboard import gen_dashboard  # noqa: PLC0415
+    from dvsim.sim.dashboard import gen_badges, gen_dashboard  # noqa: PLC0415
     from dvsim.sim.data import SimResultsSummary  # noqa: PLC0415
 
     results: SimResultsSummary = SimResultsSummary.load(path=json_path)
@@ -52,6 +52,11 @@ def dashboard_gen(json_path: Path, output_dir: Path, base_url: str | None) -> No
         summary=results,
         path=output_dir,
         base_url=base_url,
+    )
+
+    gen_badges(
+        summary=results,
+        path=output_dir,
     )
 
 
