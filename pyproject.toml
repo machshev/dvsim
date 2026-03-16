@@ -16,6 +16,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
+    "anybadge>=1.16.0",
     # Keep sorted
     "click>=8.1.7",
     "enlighten>=1.12.4",
