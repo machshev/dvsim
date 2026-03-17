@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.16.0 (2026-03-17)
+
+### Features
+
+- Add dashboard json
+  ([`2493bc4`](https://github.com/lowRISC/dvsim/commit/2493bc417b964cadb342285d12a1e30b8c379726))
+
+- Generate badges for test reports
+  ([`92b8f44`](https://github.com/lowRISC/dvsim/commit/92b8f44eb0e96e1d1ac16678b7e1a0c24b8b3200))
+
+
 ## v1.15.0 (2026-03-13)
 
 ### Features
