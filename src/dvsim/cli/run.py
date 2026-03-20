@@ -943,9 +943,29 @@ def main(argv: list[str] | None = None) -> None:
     # Configure scheduler instrumentation
     set_instrumentation(InstrumentationFactory.create(args.instrumentation))
 
+    # Check if we should use the new lint flow implementation
+    use_new_lint_flow = os.environ.get("DVSIM_USE_NEW_LINT_FLOW") == "1"
+
     # Build infrastructure from hjson file and create the list of items to
     # be deployed.
-    cfg = make_cfg(args.cfg, args, proj_root)
+    if use_new_lint_flow:
+        from dvsim.check.flow import detect_flow_type
+        from dvsim.linting.lint import LintFlow
+
+        try:
+            flow_type = detect_flow_type(Path(args.cfg))
+            is_lint_flow = flow_type == "lint"
+        except Exception as e:
+            log.warning(f"Failed to detect flow type: {e}")
+            is_lint_flow = False
+
+        if is_lint_flow:
+            log.info("Using new lint flow implementation")
+            cfg = LintFlow(args.cfg, args, proj_root)
+        else:
+            cfg = make_cfg(args.cfg, args, proj_root)
+    else:
+        cfg = make_cfg(args.cfg, args, proj_root)
 
     # List items available for run if --list switch is passed, and exit.
     if args.list is not None:
@@ -960,6 +980,7 @@ def main(argv: list[str] | None = None) -> None:
     # exclusion file.
     if args.cov_unr:
         cfg.cov_unr()
+        cfg.create_deploy_objects()
         cfg.deploy_objects()
         sys.exit(0)
 
@@ -967,17 +988,14 @@ def main(argv: list[str] | None = None) -> None:
     # tool.
     if args.cov_analyze:
         cfg.cov_analyze()
+        cfg.create_deploy_objects()
         cfg.deploy_objects()
         sys.exit(0)
 
     # Deploy the builds and runs
     if args.items:
-        # Create deploy objects.
-        cfg.create_deploy_objects()
-        results = cfg.deploy_objects()
-
-        # Generate results.
-        cfg.gen_results(results)
+        # Run the flow
+        cfg.run()
 
         # Now that we have printed the results from the scheduler, we close the
         # status printer, to ensure the status remains relevant in the UI context

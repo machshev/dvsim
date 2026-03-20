@@ -1,0 +1,167 @@
+{% extends "reports/wrapper.html" %}
+
+{% block title %}{{ results.name }} Lint Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1>{{ results.name.upper() }} Lint Results</h1>
+            <p class="text-muted">
+                Branch: <strong>{{ results.branch }}</strong> |
+                Tool: <strong>{{ results.tool.name.upper() }}</strong> |
+                Timestamp: <strong>{{ results.timestamp }}</strong>
+            </p>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Overall Status</h5>
+                    <h2 class="{% if results.overall_status == 'PASSED' %}text-success{% else %}text-danger{% endif %}">
+                        {{ results.overall_status }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Jobs</h5>
+                    <h2>{{ results.total_jobs }}</h2>
+                    <p class="mb-0">
+                        <span class="text-success">{{ results.passed_jobs }} passed</span> /
+                        <span class="text-danger">{{ results.failed_jobs }} failed</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Errors</h5>
+                    <h2 class="{% if results.total_errors > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ results.total_errors }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Warnings</h5>
+                    <h2 class="{% if results.total_warnings > 0 %}text-warning{% else %}text-success{% endif %}">
+                        {{ results.total_warnings }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jobs Summary Table -->
+    <div class="row mb-4">
+        <div class="col">
+            <h3>Jobs Summary</h3>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Build Mode</th>
+                            <th class="text-center">Flow Infos</th>
+                            <th class="text-center">Flow Warnings</th>
+                            <th class="text-center">Flow Errors</th>
+                            <th class="text-center">Lint Infos</th>
+                            <th class="text-center">Lint Warnings</th>
+                            <th class="text-center">Lint Errors</th>
+                            <th class="text-center">Runtime</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in results.jobs %}
+                        <tr class="{% if not job.passed %}table-danger{% endif %}">
+                            <td><a href="#job-{{ loop.index }}">{{ job.name }}</a></td>
+                            <td class="text-center">{{ job.messages.flow_info|length }}</td>
+                            <td class="text-center">{{ job.messages.flow_warning|length }}</td>
+                            <td class="text-center">{{ job.messages.flow_error|length }}</td>
+                            <td class="text-center">{{ job.messages.lint_info|length }}</td>
+                            <td class="text-center">{{ job.messages.lint_warning|length }}</td>
+                            <td class="text-center">{{ job.messages.lint_error|length }}</td>
+                            <td class="text-center">{{ "%.2f"|format(job.job_runtime) }}s</td>
+                            <td class="text-center">
+                                {% if job.passed %}
+                                <span class="badge bg-success">PASSED</span>
+                                {% else %}
+                                <span class="badge bg-danger">FAILED</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Messages for Each Job -->
+    {% for job in results.jobs %}
+    <div class="row mb-4" id="job-{{ loop.index }}">
+        <div class="col">
+            <div class="card">
+                <div class="card-header {% if not job.passed %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+                    <h4 class="mb-0">{{ job.name }}</h4>
+                    <small>Log: <code>{{ job.log_path }}</code></small>
+                </div>
+                <div class="card-body">
+                    <!-- Lint Errors -->
+                    {% if job.messages.lint_error %}
+                    <h5 class="text-danger">Lint Errors ({{ job.messages.lint_error|length }})</h5>
+                    <pre class="bg-light p-3" style="max-height: 400px; overflow-y: auto;">{% for msg in job.messages.lint_error[:50] %}{{ msg }}
+{% endfor %}{% if job.messages.lint_error|length > 50 %}... and {{ job.messages.lint_error|length - 50 }} more{% endif %}</pre>
+                    {% endif %}
+
+                    <!-- Lint Warnings -->
+                    {% if job.messages.lint_warning %}
+                    <h5 class="text-warning">Lint Warnings ({{ job.messages.lint_warning|length }})</h5>
+                    <pre class="bg-light p-3" style="max-height: 400px; overflow-y: auto;">{% for msg in job.messages.lint_warning[:50] %}{{ msg }}
+{% endfor %}{% if job.messages.lint_warning|length > 50 %}... and {{ job.messages.lint_warning|length - 50 }} more{% endif %}</pre>
+                    {% endif %}
+
+                    <!-- Lint Infos -->
+                    {% if job.messages.lint_info %}
+                    <h5 class="text-info">Lint Infos ({{ job.messages.lint_info|length }})</h5>
+                    <pre class="bg-light p-3" style="max-height: 400px; overflow-y: auto;">{% for msg in job.messages.lint_info[:50] %}{{ msg }}
+{% endfor %}{% if job.messages.lint_info|length > 50 %}... and {{ job.messages.lint_info|length - 50 }} more{% endif %}</pre>
+                    {% endif %}
+
+                    <!-- Flow Errors -->
+                    {% if job.messages.flow_error %}
+                    <h5 class="text-danger">Flow Errors ({{ job.messages.flow_error|length }})</h5>
+                    <pre class="bg-light p-3" style="max-height: 400px; overflow-y: auto;">{% for msg in job.messages.flow_error %}{{ msg }}
+{% endfor %}</pre>
+                    {% endif %}
+
+                    <!-- Flow Warnings -->
+                    {% if job.messages.flow_warning %}
+                    <h5 class="text-warning">Flow Warnings ({{ job.messages.flow_warning|length }})</h5>
+                    <pre class="bg-light p-3" style="max-height: 400px; overflow-y: auto;">{% for msg in job.messages.flow_warning %}{{ msg }}
+{% endfor %}</pre>
+                    {% endif %}
+
+                    <!-- No Messages -->
+                    {% if not job.messages.lint_error and not job.messages.lint_warning and not job.messages.lint_info and not job.messages.flow_error and not job.messages.flow_warning %}
+                    <div class="alert alert-success">
+                        <strong>All checks passed!</strong> No lint messages found.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

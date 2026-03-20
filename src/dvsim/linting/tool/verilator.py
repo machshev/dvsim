@@ -1,29 +1,27 @@
 # Copyright lowRISC contributors (OpenTitan project).
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
-
-"""Parses lint report and dump filtered messages in hjson format."""
+r"""Parses lint report and dump filtered messages in hjson format."""
 
 import argparse
+import logging as log
 import sys
 from pathlib import Path
 
-from LintParser import LintParser
-
-from dvsim.logging import log
+from dvsim.linting.output_parser import LintParser
 
 
 # TODO(#9079): this script will be removed long term once the
 # parser has been merged with the Dvsim core code.
-def main() -> None:
+def main():
     parser = argparse.ArgumentParser(
-        description="""This script parses Verible Lint log and report files from
-        a lint run, filters the messages and creates an aggregated result
+        description="""This script parses Verilator lint log and report files
+        from a lint run, filters the messages and creates an aggregated result
         .hjson file with lint messages and their severities.
 
         The script returns nonzero status if any warnings or errors are
         present.
-        """,
+        """
     )
     parser.add_argument(
         "--repfile",
@@ -50,45 +48,56 @@ def main() -> None:
             # with a nonzero status code and fusesoc will always spit out
             # an error like
             #
-            #    ERROR: Failed to run ip:core:name:0.1 : Lint failed
+            #    ERROR: Failed to build ip:core:name:0.1 : '['make', 'lint-only']' exited with an error: 2
             #
             # If we found any other warnings or errors, there's no point in
             # listing this too. BUT we want to make sure we *do* see this
             # error if there are no other errors or warnings, since that
             # shows something has come unstuck. (Probably the lint tool
             # spat out a warning that we don't understand)
-            ("fusesoc-error", r"^ERROR: Failed to run .*: Lint failed.*"),
-            ("flow_error", r"^(?!ERROR: Failed to run .* Lint failed)ERROR: .*"),
-            ("flow_error", r"^.*Error: .*"),
-            ("flow_error", r"^E .*"),
-            ("flow_error", r"^F .*"),
-            ("flow_error", r".*: syntax error, rejected.*"),
+            ("fusesoc-error", r"^ERROR: Failed to build .* exited with an error"),
+            # Verilator warnings that have been prefixed with ERROR: by the logging chain
+            ("lint_warning", r"^ERROR: %Warning-.*"),
+            ("lint_error", r"^ERROR: %Error-.*"),
+            (
+                "flow_error",
+                r"^(?!ERROR: Failed to build .* exited with an error)ERROR: .*",
+            ),
+            (
+                "flow_error",
+                # This is a redundant Verilator error that we ignore, since we
+                # already parse out each individual error.
+                r"^(?!%Error: Exiting due to .* warning.*)%Error: .*",
+            ),
             # TODO(https://github.com/olofk/edalize/issues/90):
             # this is a workaround until we actually have native Edalize
             # support for JasperGold and "formal" targets
-            # TODO(#10071) remove countermeasure waiver.
-            (
-                "flow_warning",
-                r"^(?!WARNING: Unknown item formal in section Target)"
-                r"(?!WARNING: Countermeasure.*)"
-                r"WARNING: .*",
-            ),
-            ("flow_warning", r"^.*Warning: .* "),
-            ("flow_warning", r"^W .*"),
-            ("lint_warning", r"^.*\[Style:.*"),
-        ],
+            ("flow_warning", r"^(?!WARNING: Unknown item formal in section Target)WARNING: .*"),
+            ("flow_warning", r"^%Warning: .* "),
+            ("lint_error", r"^%Error-.*"),
+            ("lint_warning", r"^%Warning-.*"),
+        ]
     }
 
     # Parse logs
     parser = LintParser()
     num_messages = parser.get_results(parser_args)
 
+    # Deduplicate messages (fusesoc may run the build multiple times)
+    for bucket in parser.buckets:
+        parser.buckets[bucket] = list(dict.fromkeys(parser.buckets[bucket]))
+
+    # Recount after deduplication
+    num_messages = {"info": 0, "warning": 0, "error": 0}
+    for key, sev in parser.severities.items():
+        num_messages[sev] += len(parser.buckets[key])
+
     # Write out results file
     parser.write_results_as_hjson(args.outfile)
 
-    # return nonzero status if any warnings or errors are present
-    # lint infos do not count as failures
-    if num_messages["error"] > 0 or num_messages["warning"] > 0:
+    # return nonzero status only if errors are present
+    # warnings and infos do not count as failures
+    if num_messages["error"] > 0:
         log.info(
             "Found %d lint errors and %d lint warnings",
             num_messages["error"],
@@ -96,7 +105,13 @@ def main() -> None:
         )
         sys.exit(1)
 
-    log.info("Lint logfile parsed succesfully")
+    if num_messages["warning"] > 0:
+        log.info(
+            "Found %d lint warnings (no errors)",
+            num_messages["warning"],
+        )
+
+    log.info("Lint logfile parsed successfully")
     sys.exit(0)
 
 

@@ -60,6 +60,60 @@ def dashboard_gen(json_path: Path, output_dir: Path, base_url: str | None) -> No
     )
 
 
+@cli.command()
+@click.argument(
+    "hjson_file",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, path_type=Path),
+)
+@click.option(
+    "--proj-root",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    default=None,
+    help="Project root directory (default: infer from git root)",
+)
+def check(hjson_file: Path, proj_root: Path | None) -> None:
+    """Check a flow configuration file for validity."""
+    from dvsim.check.flow import check_flow_config  # noqa: PLC0415
+    from dvsim.config import ProjectConfig  # noqa: PLC0415
+    from dvsim.linting.config import LintBatchConfig  # noqa: PLC0415
+    from dvsim.utils.git import repo_root  # noqa: PLC0415
+
+    # Infer proj_root if not provided
+    if proj_root is None:
+        proj_root = repo_root(hjson_file.parent)
+        if proj_root is None:
+            proj_root = hjson_file.parent
+
+    # Ensure proj_root is absolute
+    proj_root = proj_root.resolve()
+
+    # Use placeholder values for check validation
+    project_config = ProjectConfig(
+        proj_root=proj_root,
+        tool="ascentlint",
+        scratch_path=Path("/tmp/scratch"),  # noqa: S108
+    )
+
+    success, message, flow_type, config = check_flow_config(hjson_file, project_config)
+
+    if flow_type:
+        click.echo(f"Flow type: {flow_type}")
+
+    if success:
+        click.secho(f"✓ {message}", fg="green")
+
+        # If it's a batch config, list the child configs
+        if isinstance(config, LintBatchConfig) and config.use_cfgs:
+            click.echo(f"\nChild configurations ({len(config.use_cfgs)}):")
+            for i, block_config in enumerate(config.use_cfgs, 1):
+                click.secho(f"  {i}. ✓ {block_config.name}", fg="green")
+
+        sys.exit(0)
+    else:
+        click.secho(f"✗ {message}", fg="red")
+        sys.exit(1)
+
+
 @cli.group()
 def report() -> None:
     """Reporting helper commands."""

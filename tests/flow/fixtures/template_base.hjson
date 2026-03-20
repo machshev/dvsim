@@ -1,0 +1,20 @@
+// Copyright lowRISC contributors (OpenTitan project).
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+
+// Base configuration with template variables
+{
+  dut: test_dut
+  fusesoc_core: "test:core"
+  additional_fusesoc_argument: "--test"
+  build_dir: "{scratch_path}"
+  build_log: "{build_dir}/log"
+  build_cmd: cmd
+  build_opts: ["opt1"]
+  report_severities: ["error"]
+  fail_severities: ["error"]
+  message_buckets: [
+    {category: "lint", severity: "error", label: "Errors"}
+  ]
+  rel_path: "hw/lint"
+}

@@ -8,8 +8,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from LintParser import LintParser
-
+from dvsim.linting.output_parser import LintParser
 from dvsim.logging import log
 
 
@@ -29,9 +28,8 @@ def main() -> None:
         "--repdir",
         type=lambda p: Path(p).resolve(),
         default="./",
-        help="""The script searches the 'ascentlint.log' and
-                        'ascentlint.rpt' files in this directory.
-                        Defaults to './'""",
+        help="""The script searches for lint.log and tool-specific logs
+                        in this directory. Defaults to './'""",
     )
 
     parser.add_argument(
@@ -47,10 +45,10 @@ def main() -> None:
     # Define warning/error patterns for each logfile
     parser_args = {}
 
-    # Patterns for lint.log
+    # Patterns for lint.log (makefile output)
     parser_args.update(
         {
-            args.repdir.joinpath("ascentlint.log"): [
+            args.repdir.joinpath("lint.log"): [
                 # If lint warnings have been found, the lint tool will exit
                 # with a nonzero status code and fusesoc will always spit out
                 # an error like

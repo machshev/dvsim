@@ -1,0 +1,14 @@
+// Copyright lowRISC contributors (OpenTitan project).
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+
+// Main config that imports base first, then tool
+// The second import uses lint_root which is defined in the first import
+{
+  name: "chain_test"
+  flow: "lint"
+  import_cfgs: [
+    "{proj_root}/chain_base.hjson"
+    "{proj_root}/chain_tool.hjson"
+  ]
+}

@@ -489,6 +489,27 @@ class FlowCfg(ABC):
 
         """
 
+    def run(self) -> None:
+        """Execute the flow.
+
+        This is the main entry point for running a flow. Subclasses can override
+        this method to define custom execution logic specific to their flow type.
+
+        The default implementation follows the standard pattern:
+        1. Create deploy objects (jobs to run)
+        2. Deploy and execute the objects
+        3. Generate results
+
+        """
+        # Create deploy objects
+        self.create_deploy_objects()
+
+        # Deploy and execute
+        results = self.deploy_objects()
+
+        # Generate results
+        self.gen_results(results)
+
     def has_errors(self) -> bool:
         """Return error state."""
         return self.errors_seen

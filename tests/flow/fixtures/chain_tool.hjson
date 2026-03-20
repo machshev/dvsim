@@ -1,0 +1,8 @@
+// Copyright lowRISC contributors (OpenTitan project).
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+
+// Tool config that uses lint_root defined in chain_base
+{
+  tool_path: "{lint_root}/tools"
+}
