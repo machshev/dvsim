@@ -4,7 +4,6 @@
 
 """Pydantic models for lint flow configuration."""
 
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -75,5 +74,5 @@ class LintFlowConfig(BaseModel):
 
     model_config = ConfigDict(
         frozen=True,  # Make the model immutable
-        extra="allow",  # Allow extra fields for forwards compatibility
+        extra="forbid",  # Forbid extra fields to catch configuration errors
     )

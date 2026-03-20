@@ -164,20 +164,20 @@ def test_missing_required_field_raises() -> None:
     assert "name" in str(exc_info.value)
 
 
-def test_extra_fields_allowed() -> None:
-    """Test that extra fields are allowed in the configuration."""
+def test_extra_fields_forbidden() -> None:
+    """Test that extra fields are forbidden in the configuration."""
     config_dict = {
         "name": "test",
         "flow": "lint",
         "custom_field": "custom_value",
-        "another_field": 123,
     }
 
-    config = load_lint_config_from_dict(config_dict)
+    # Should raise ValidationError for unknown fields
+    with pytest.raises(ValidationError) as exc_info:
+        load_lint_config_from_dict(config_dict)
 
-    assert_that(config.name, equal_to("test"))
-    # Extra fields should be accessible via model_extra or __dict__
-    assert hasattr(config, "custom_field") or "custom_field" in config.model_extra
+    # Verify the error mentions the unexpected field
+    assert "custom_field" in str(exc_info.value)
 
 
 def test_integration_with_example_hjson() -> None:
