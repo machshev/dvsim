@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.16.1 (2026-03-27)
+
+### Bug Fixes
+
+- Document `--interactive` reseed assumption
+  ([`788ea25`](https://github.com/lowRISC/dvsim/commit/788ea254eeb2a20d59379b118474c376cffcd87a))
+
+
 ## v1.16.0 (2026-03-17)
 
 ### Features
