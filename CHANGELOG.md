@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.16.3 (2026-03-27)
+
+### Bug Fixes
+
+- Round RSS byte averages in resource instrumentation
+  ([`519b065`](https://github.com/lowRISC/dvsim/commit/519b0656dd75883c90780791a50637a32f72f89c))
+
+### Refactoring
+
+- Switch to `time.perf_counter` for instrumentation
+  ([`bd4b77d`](https://github.com/lowRISC/dvsim/commit/bd4b77d61544248f3b15d13761dbc6739d792804))
+
+
 ## v1.16.2 (2026-03-27)
 
 ### Bug Fixes
