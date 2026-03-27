@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.17.0 (2026-03-27)
+
+### Bug Fixes
+
+- Ensure default terminal restored after SIGINT with Enlighten
+  ([`d534fbd`](https://github.com/lowRISC/dvsim/commit/d534fbd80d9d86b04c75a6659de0ce43d3a2b0aa))
+
+### Features
+
+- Expand Enlighten running status truncation to terminal width
+  ([`e1b5fa9`](https://github.com/lowRISC/dvsim/commit/e1b5fa972f14aeaff2c4f2fe960cc4954bd5138f))
+
+
 ## v1.16.3 (2026-03-27)
 
 ### Bug Fixes

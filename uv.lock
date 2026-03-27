@@ -356,7 +356,7 @@ wheels = [
 
 [[package]]
 name = "dvsim"
-version = "1.16.3"
+version = "1.17.0"
 source = { editable = "." }
 dependencies = [
     { name = "anybadge" },
