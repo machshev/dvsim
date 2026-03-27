@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.16.2 (2026-03-27)
+
+### Bug Fixes
+
+- Stop adding build job dependencies if running with --run-only
+  ([`96735a1`](https://github.com/lowRISC/dvsim/commit/96735a1bce6d9aeb2ea7eab275d13f85681ee12f))
+
+
 ## v1.16.1 (2026-03-27)
 
 ### Bug Fixes
