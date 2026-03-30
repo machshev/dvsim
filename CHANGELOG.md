@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.17.3 (2026-03-30)
+
+### Bug Fixes
+
+- Tee interactive job stdout/stderr to the log file
+  ([`6d1f83c`](https://github.com/lowRISC/dvsim/commit/6d1f83c336a582dba69b768cbe30bf01744f2d74))
+
+### Refactoring
+
+- Remove `gui` attribute from the `JobSpec` model
+  ([`7fa03ed`](https://github.com/lowRISC/dvsim/commit/7fa03ed64d2ec43b3f8d11748a4c6ecc39209b4e))
+
+
 ## v1.17.2 (2026-03-30)
 
 ### Bug Fixes
