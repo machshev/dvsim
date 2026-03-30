@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v1.17.1 (2026-03-30)
+
+### Bug Fixes
+
+- Restore RunTest simulation time parsing
+  ([`8ebb0c1`](https://github.com/lowRISC/dvsim/commit/8ebb0c116adbec46e14f71cceba326bf6ab4c0bc))
+
+### Refactoring
+
+- Use format string for local launcher log instead of fstring
+  ([`bdbf0b4`](https://github.com/lowRISC/dvsim/commit/bdbf0b42f093cf9669a1b2bfc18665e2c32ffa5e))
+
+### Testing
+
+- Expect a ValueError on a dependency cycle
+  ([`0d83b97`](https://github.com/lowRISC/dvsim/commit/0d83b9730698e2648e099165ada323ed38bedd2d))
+
+- Fix & improve status checks in scheduler job dependency tests
+  ([`f05d71d`](https://github.com/lowRISC/dvsim/commit/f05d71d4547ef865132ed72ec143fd00e8255bb9))
+
+- Fix `test_job_priority` scheduler test
+  ([`6054386`](https://github.com/lowRISC/dvsim/commit/6054386aca052f3a4a165d0312c7560b7f7cdc2d))
+
+- Remove `test_same_name_different_targets`
+  ([`f4256f1`](https://github.com/lowRISC/dvsim/commit/f4256f112cbb11529f99ce5a4c75d2792cd7f5ef))
+
+
 ## v1.17.0 (2026-03-27)
 
 ### Bug Fixes
