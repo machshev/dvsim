@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.17.2 (2026-03-30)
+
+### Bug Fixes
+
+- Sim flow result pass/total count aggregation
+  ([`48ec7ba`](https://github.com/lowRISC/dvsim/commit/48ec7ba112fe9ca6ebff3936e170c5a0852756cb))
+
+
 ## v1.17.1 (2026-03-30)
 
 ### Bug Fixes
