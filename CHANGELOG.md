@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v1.19.0 (2026-04-01)
+
+### Features
+
+- Add new `JobStatusInfo` model
+  ([`63e8d12`](https://github.com/lowRISC/dvsim/commit/63e8d127636cea50e917e01f4e27f6bef607aea0))
+
+- Introduce `JobSpec.id` property
+  ([`c874331`](https://github.com/lowRISC/dvsim/commit/c8743313ad6042107e4b2354c6b6039fb9e8a75b))
+
+- Introduce `LegacyLauncherAdapter` runtime backend
+  ([`65df3d6`](https://github.com/lowRISC/dvsim/commit/65df3d66f7104009025d87b4688409045ffca446))
+
+- Introduce abstract `RuntimeBackend` base class
+  ([`cbb46d2`](https://github.com/lowRISC/dvsim/commit/cbb46d2d97e6aa74eeb491505f64298f3cc71b1d))
+
+
 ## v1.18.0 (2026-04-01)
 
 ### Features
