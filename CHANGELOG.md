@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v1.18.0 (2026-04-01)
+
+### Features
+
+- Rename 'Dispatched' job status to 'Running'
+  ([`66f8205`](https://github.com/lowRISC/dvsim/commit/66f8205b94ef12d661927c0cf8f90ea9cb5d3ec8))
+
+### Refactoring
+
+- Create status link directories from the JobStatus Enum
+  ([`04f6a9b`](https://github.com/lowRISC/dvsim/commit/04f6a9ba0a4fa1c75cf265f4018eb067c7eecb3d))
+
+- Move `print_msg_list` to a separate `print` util
+  ([`3ee54b9`](https://github.com/lowRISC/dvsim/commit/3ee54b927e74da67fe58262bdfa1cb97f87903f9))
+
+- Move scheduler & status printer into separate module
+  ([`ef44a6a`](https://github.com/lowRISC/dvsim/commit/ef44a6a7e0e090e6f6f6729cb53531cb9ce0ab82))
+
+- Rename `JobStatus.ended` to `JobStatus.is_terminal`
+  ([`25aab7f`](https://github.com/lowRISC/dvsim/commit/25aab7fae66c718ea031275e3942939894cd7436))
+
+
 ## v1.17.4 (2026-04-01)
 
 ### Refactoring
