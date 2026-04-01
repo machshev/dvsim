@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v1.17.4 (2026-04-01)
+
+### Refactoring
+
+- Make timeout seconds a `JobSpec` property
+  ([`ef48cc7`](https://github.com/lowRISC/dvsim/commit/ef48cc72c33e5e0d5efa349bc55a7627801bbddc))
+
+- Pass `renew_odir` through the JobSpec instead of `pre_launch`
+  ([`a57a94c`](https://github.com/lowRISC/dvsim/commit/a57a94c6a7398f4858ff91578aa8f807b008ae9d))
+
+- Remove `pre_launch` Launcher inversion of control
+  ([`b65fdc7`](https://github.com/lowRISC/dvsim/commit/b65fdc7768ef4eb164ac0ec1716e16a97a76cc27))
+
+
 ## v1.17.3 (2026-03-30)
 
 ### Bug Fixes
