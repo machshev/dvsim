@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.19.2 (2026-04-02)
+
+### Bug Fixes
+
+- Move revision info retrieval to the base `FlowCfg`
+  ([`5524219`](https://github.com/lowRISC/dvsim/commit/5524219b5740b4138816a7d289d4284fe00a66d7))
+
+
 ## v1.19.1 (2026-04-02)
 
 ### Bug Fixes
