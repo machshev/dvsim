@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.19.1 (2026-04-02)
+
+### Bug Fixes
+
+- Use correct shorthand for 'Running' in the scheduler
+  ([`3a3927d`](https://github.com/lowRISC/dvsim/commit/3a3927d08936292d0f9fa2c5af1e00ad6142ddee))
+
+
 ## v1.19.0 (2026-04-01)
 
 ### Features
