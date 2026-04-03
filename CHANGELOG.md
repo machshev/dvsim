@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.19.7 (2026-04-03)
+
+### Refactoring
+
+- Tidy up the last few Ruff problems in deploy.py
+  ([`f83c7e1`](https://github.com/lowRISC/dvsim/commit/f83c7e1881e5ea90042bf0d693170caaebfbc240))
+
+
 ## v1.19.6 (2026-04-03)
 
 ### Refactoring
