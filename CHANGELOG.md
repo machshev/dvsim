@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.19.5 (2026-04-03)
+
+### Refactoring
+
+- Add more strictly typed "sim_cfg" to some Deploy classes
+  ([`34653b2`](https://github.com/lowRISC/dvsim/commit/34653b2dd9f02221e52056ce28e919940563b21c))
+
+
 ## v1.19.4 (2026-04-03)
 
 ### Refactoring
