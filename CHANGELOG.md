@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.19.4 (2026-04-03)
+
+### Refactoring
+
+- Correct the type for RunMode.build_mode
+  ([`7bc25f6`](https://github.com/lowRISC/dvsim/commit/7bc25f651e2710e9ba14d3ce00dd6749bc4212e1))
+
+
 ## v1.19.3 (2026-04-03)
 
 ### Bug Fixes
