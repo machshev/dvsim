@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.19.6 (2026-04-03)
+
+### Refactoring
+
+- Explicitly give types to some fields in Deploy subclasses
+  ([`7c2195e`](https://github.com/lowRISC/dvsim/commit/7c2195e0a1ee4ebbe63e8d7c2775d64eb3c1944e))
+
+
 ## v1.19.5 (2026-04-03)
 
 ### Refactoring
