@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.19.3 (2026-04-03)
+
+### Bug Fixes
+
+- Correct the type for Deploy.init
+  ([`c831123`](https://github.com/lowRISC/dvsim/commit/c831123ad39ec9f8a669a5ee56ae8c0343da8251))
+
+### Refactoring
+
+- Move the "name" field up to FlowCfg
+  ([`845a518`](https://github.com/lowRISC/dvsim/commit/845a5183f87f6d4f1594356570634daf3740e00e))
+
+
 ## v1.19.2 (2026-04-02)
 
 ### Bug Fixes
