@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v1.22.0 (2026-04-06)
+
+### Features
+
+- Implement new async base `StatusPrinter` class
+  ([`d6068eb`](https://github.com/lowRISC/dvsim/commit/d6068eb7ae06031d52d89c32699d536a88be136f))
+
+- Port `EnlightenStatusPrinter` to the async interface
+  ([`4061086`](https://github.com/lowRISC/dvsim/commit/40610864bd9c1597639df496f83f33b76ea88c81))
+
+- Port `TtyStatusPrinter` to the new async interface
+  ([`906d00f`](https://github.com/lowRISC/dvsim/commit/906d00f23b2680e45e14355e47ab47b39df5cac1))
+
+### Refactoring
+
+- Reorganize time utilities
+  ([`f7af42d`](https://github.com/lowRISC/dvsim/commit/f7af42d979206441d2fc06dd5e2022b0d3340104))
+
+
 ## v1.21.0 (2026-04-06)
 
 ### Features
