@@ -26,6 +26,7 @@ from dvsim.utils import (
     rm_path,
     subst_wildcards,
 )
+from dvsim.utils.git import git_commit_hash
 
 if TYPE_CHECKING:
     from dvsim.job.deploy import Deploy
@@ -159,6 +160,12 @@ class FlowCfg(ABC):
 
         # Configure the report path for instrumentation
         instrumentation.set_report_path(reports_dir / "metrics.json")
+
+        # After initialisation & expansion, save some useful revision metadata
+        proj_root = Path(self.proj_root)
+
+        self.commit = git_commit_hash(path=proj_root, short=False)
+        self.commit_short = git_commit_hash(path=proj_root, short=True)
 
         # Run any final checks
         self._post_init()
