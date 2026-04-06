@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v1.23.0 (2026-04-06)
+
+### Bug Fixes
+
+- Check if coverage report exists in `CovReport`
+  ([`424dfca`](https://github.com/lowRISC/dvsim/commit/424dfca3e37751e1492dacb6c34b0ead8903ed64))
+
+### Features
+
+- Connect instrumentation to the new async scheduler
+  ([`347419d`](https://github.com/lowRISC/dvsim/commit/347419d11473ad155fde3ed039271d105eb8a37f))
+
+- Implement initial async scheduler integration
+  ([`b222868`](https://github.com/lowRISC/dvsim/commit/b2228687416bddbf001031aadf1ddb2be45510a1))
+
+- Integrate async status printers with the async scheduler
+  ([`67897f0`](https://github.com/lowRISC/dvsim/commit/67897f06ef5a80949645f04fea0becfc986bbf04))
+
+- Introduce `LogManager` and connect it to the async scheduler
+  ([`48bee84`](https://github.com/lowRISC/dvsim/commit/48bee84f62f996e17e07a968b1dbaf7883a421ee))
+
+- Introduce runtime backend registry
+  ([`7da9684`](https://github.com/lowRISC/dvsim/commit/7da96845cc249d8ac3c0eb0afce738c22f25dda1))
+
+
 ## v1.22.0 (2026-04-06)
 
 ### Features
