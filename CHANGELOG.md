@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.20.0 (2026-04-06)
+
+### Features
+
+- Add `LocalRuntimeBackend` backend
+  ([`22c795d`](https://github.com/lowRISC/dvsim/commit/22c795d7917396ff018ec928fd7f42cc5f96ac9c))
+
+- Port core launcher base functionality to the `RuntimeBackend` base
+  ([`408e5bb`](https://github.com/lowRISC/dvsim/commit/408e5bb751fab0b924153f1f9fdc83bebfe68b81))
+
+
 ## v1.19.7 (2026-04-03)
 
 ### Refactoring
