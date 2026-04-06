@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.23.2 (2026-04-06)
+
+### Refactoring
+
+- Move tool name to FlowCfg
+  ([`51e3655`](https://github.com/lowRISC/dvsim/commit/51e36557f8a6357452884769f417527e5ead747c))
+
+
 ## v1.23.1 (2026-04-06)
 
 ### Refactoring
