@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.23.3 (2026-04-06)
+
+### Refactoring
+
+- Fix types of JobSpec.timeout_mins, JobSpec.timeout_secs
+  ([`5fe1dbc`](https://github.com/lowRISC/dvsim/commit/5fe1dbc0d6e9a1dbe65577f76cc945ce8c08883e))
+
+
 ## v1.23.2 (2026-04-06)
 
 ### Refactoring
