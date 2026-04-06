@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.23.5 (2026-04-06)
+
+### Refactoring
+
+- Be more careful with variants in OneShotCfg.gen_results
+  ([`e662759`](https://github.com/lowRISC/dvsim/commit/e6627596d256a37796c0435669eaea579848b168))
+
+
 ## v1.23.4 (2026-04-06)
 
 ### Refactoring
