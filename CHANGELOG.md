@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.23.4 (2026-04-06)
+
+### Refactoring
+
+- Make the typing clearer in Deploy._process_exports
+  ([`ed6beb9`](https://github.com/lowRISC/dvsim/commit/ed6beb9e7f52c7a293de96a33877401acc4f420e))
+
+
 ## v1.23.3 (2026-04-06)
 
 ### Refactoring
