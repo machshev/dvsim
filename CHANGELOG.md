@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.23.1 (2026-04-06)
+
+### Refactoring
+
+- Explicitly add proj_root to FlowCfg
+  ([`c06170e`](https://github.com/lowRISC/dvsim/commit/c06170ee510061c29499ed624ef4ec2703ef3f76))
+
+### Testing
+
+- Add `pytest-mock` dependency
+  ([`5514be4`](https://github.com/lowRISC/dvsim/commit/5514be441a36d39bbb891a84f7db8f4b00151658))
+
+- Add runtime backend registry tests
+  ([`6b19dc7`](https://github.com/lowRISC/dvsim/commit/6b19dc74297200a942a43867850aa3fd6d323636))
+
+
 ## v1.23.0 (2026-04-06)
 
 ### Bug Fixes
