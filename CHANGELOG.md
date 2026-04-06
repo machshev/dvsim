@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v1.21.0 (2026-04-06)
+
+### Features
+
+- Add optional backend field to the `JobSpec` model
+  ([`bf28dac`](https://github.com/lowRISC/dvsim/commit/bf28dace73af06d2c62168e29bd2abaa54cdc0a7))
+
+- Introduce a new `SCHEDULED` job status
+  ([`3efc473`](https://github.com/lowRISC/dvsim/commit/3efc47329cd125be09b65e5e52f7c82d689bdfa1))
+
+- Introduce new async scheduler
+  ([`40ce9c0`](https://github.com/lowRISC/dvsim/commit/40ce9c0489b9822a4da0fac47afc2e9ca8e4b2f5))
+
+
 ## v1.20.0 (2026-04-06)
 
 ### Features
