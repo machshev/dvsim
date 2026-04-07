@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.26.3 (2026-04-07)
+
+### Refactoring
+
+- Rewrite how OneShotCfg.build_modes gets constructed
+  ([`c471598`](https://github.com/lowRISC/dvsim/commit/c47159832a7868ac5b8d80cd6d81956d65a16b67))
+
+- Rewrite Mode.create_modes as a class method
+  ([`a23741e`](https://github.com/lowRISC/dvsim/commit/a23741e724dcbb0b699a7a7af6305ec2c5f7c783))
+
+
 ## v1.26.2 (2026-04-07)
 
 ### Refactoring
