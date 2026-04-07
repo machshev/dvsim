@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.24.0 (2026-04-07)
+
+### Features
+
+- Improve default scheduler prioritization function
+  ([`3ef09da`](https://github.com/lowRISC/dvsim/commit/3ef09dad18d65f2eb39f6523872dba8b644f563f))
+
+
 ## v1.23.6 (2026-04-07)
 
 ### Bug Fixes
