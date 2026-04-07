@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.26.1 (2026-04-07)
+
+### Bug Fixes
+
+- Move initial async status printer update
+  ([`c29abfb`](https://github.com/lowRISC/dvsim/commit/c29abfb1f16092a15f116d3b2161cefd81227fb8))
+
+
 ## v1.26.0 (2026-04-07)
 
 ### Features
