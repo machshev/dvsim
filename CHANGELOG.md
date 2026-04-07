@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.23.6 (2026-04-07)
+
+### Bug Fixes
+
+- Apply `--max-odirs` to `RuntimeBackend` as well
+  ([`4a6fb15`](https://github.com/lowRISC/dvsim/commit/4a6fb1513883f3c28eb06d731cee2029450b414a))
+
+
 ## v1.23.5 (2026-04-06)
 
 ### Refactoring
