@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.25.0 (2026-04-07)
+
+### Features
+
+- Implement fake runtime backend with fake coverage results
+  ([`c0748a4`](https://github.com/lowRISC/dvsim/commit/c0748a4f31cbfcc3496d9fe9fd38426ffe66cd0d))
+
+
 ## v1.24.0 (2026-04-07)
 
 ### Features
