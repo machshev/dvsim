@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v1.26.0 (2026-04-07)
+
+### Features
+
+- Async_core -> core & async_status_printer -> status_printer
+  ([`95193f1`](https://github.com/lowRISC/dvsim/commit/95193f17aa028c8f83c2c93a7261340f1fdec9c0))
+
+- Remove `Timer` utility
+  ([`76947ab`](https://github.com/lowRISC/dvsim/commit/76947ab53b4d84d3408aced58e219329e2c0be09))
+
+- Remove legacy LocalLauncher, FakeLauncher and Launcher factory
+  ([`9e7f321`](https://github.com/lowRISC/dvsim/commit/9e7f321de9668fcc5200840532db15f74cb78ce9))
+
+- Remove the old scheduler and status printer
+  ([`05cbad4`](https://github.com/lowRISC/dvsim/commit/05cbad46bbbd2da0404f10f3ee13a19d13a0b1b3))
+
+- Switch to use the async scheduler interface
+  ([`0daa4eb`](https://github.com/lowRISC/dvsim/commit/0daa4ebe3d71abd665d7c6faf95ddf13cb22a7df))
+
+### Testing
+
+- Add 2 async scheduler tests for parallelism & prioritization
+  ([`70e5a0d`](https://github.com/lowRISC/dvsim/commit/70e5a0dcf1fa5272330ff5518d4bf2d80368b28f))
+
+- Add `pytest-asyncio` dependency
+  ([`efc45b7`](https://github.com/lowRISC/dvsim/commit/efc45b73be2c05b7932c116384f164d23163428e))
+
+- Convert scheduler tests to use the new async scheduler
+  ([`3343eb8`](https://github.com/lowRISC/dvsim/commit/3343eb8189040ae1b33d4ded68634636008467b5))
+
+
 ## v1.25.0 (2026-04-07)
 
 ### Features
