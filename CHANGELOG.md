@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.26.2 (2026-04-07)
+
+### Refactoring
+
+- Tidy up the last few Ruff problems in one_shot.py
+  ([`b2de3fc`](https://github.com/lowRISC/dvsim/commit/b2de3fc587a6db03da8ae7aa3b53b0b8871a47aa))
+
+
 ## v1.26.1 (2026-04-07)
 
 ### Bug Fixes
