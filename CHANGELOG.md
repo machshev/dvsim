@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.27.0 (2026-04-08)
+
+### Features
+
+- Remove unused `--no-rerun` option
+  ([`134420e`](https://github.com/lowRISC/dvsim/commit/134420e961f583b2cecab55b0d60ac8f77c7ad63))
+
+
 ## v1.26.3 (2026-04-07)
 
 ### Refactoring
