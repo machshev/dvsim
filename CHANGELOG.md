@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v1.29.0 (2026-04-09)
+
+### Features
+
+- Remove computed symlink dirs from the `JobSpec` and `FlowCfg`
+  ([`25017ee`](https://github.com/lowRISC/dvsim/commit/25017ee5ea03b06a19e711272c203878e7a4aab4))
+
+### Refactoring
+
+- Move `workspace_cfg` to the base flow
+  ([`8d3323a`](https://github.com/lowRISC/dvsim/commit/8d3323a7136e8cba96bf992b628a5fa5588eb70b))
+
+- Move status symlink directory creation to the `LogManager`
+  ([`e23e6ba`](https://github.com/lowRISC/dvsim/commit/e23e6ba8cf065c92c47398cfc1ebdda3a659d74b))
+
+- Remove output directory status symlinking from the launchers
+  ([`e0ad0a4`](https://github.com/lowRISC/dvsim/commit/e0ad0a43ae725b02aad1b6af2d2cad191909458e))
+
+- Remove test dependencies on `JobSpec.links`
+  ([`9a92b89`](https://github.com/lowRISC/dvsim/commit/9a92b89f397f131c849d8ab15a285b079e419479))
+
+
 ## v1.28.1 (2026-04-09)
 
 ### Bug Fixes
