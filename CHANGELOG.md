@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.28.0 (2026-04-09)
+
+### Features
+
+- Use logical CPUs minus one as max_parallel default instead of 16
+  ([`18b649e`](https://github.com/lowRISC/dvsim/commit/18b649e93be914c71a13048654761f03bcd44b30))
+
+
 ## v1.27.1 (2026-04-09)
 
 ### Refactoring
