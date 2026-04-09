@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.27.1 (2026-04-09)
+
+### Refactoring
+
+- Improve the error message if given a sim item with no matches
+  ([`012178f`](https://github.com/lowRISC/dvsim/commit/012178fa0fc30ff51a33d9524e7853397858fa2a))
+
+
 ## v1.27.0 (2026-04-08)
 
 ### Features
