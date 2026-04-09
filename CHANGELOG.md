@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.28.1 (2026-04-09)
+
+### Bug Fixes
+
+- Delayed status printer start on slow machines
+  ([`4af00e9`](https://github.com/lowRISC/dvsim/commit/4af00e9b6685295c7b8d5d6ed11f037e0182d6b8))
+
+
 ## v1.28.0 (2026-04-09)
 
 ### Features
