@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.29.1 (2026-04-10)
+
+### Refactoring
+
+- Pull out the run_scheduler to common place
+  ([`7bb17c7`](https://github.com/lowRISC/dvsim/commit/7bb17c72920542d21e889230770da0b5c0eed58f))
+
+
 ## v1.29.0 (2026-04-09)
 
 ### Features
