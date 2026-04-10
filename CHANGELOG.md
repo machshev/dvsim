@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v1.30.0 (2026-04-10)
+
+### Bug Fixes
+
+- Give test `FakeSimCfg` a flow attribute
+  ([`28e60af`](https://github.com/lowRISC/dvsim/commit/28e60afc2e73aaf391b8e6800d6fd00c846cbf82))
+
+### Features
+
+- Add initial VC Z01X simulation tool support
+  ([`73c6e07`](https://github.com/lowRISC/dvsim/commit/73c6e074426010ac6bdac059951027dedbca3cc4))
+
+- Enable options for post-build commands
+  ([`9b28d2f`](https://github.com/lowRISC/dvsim/commit/9b28d2f94eaa3cc4343676905de43b0e95f24748))
+
+### Refactoring
+
+- Make `Deploy.exports` type more specific.
+  ([`e51132f`](https://github.com/lowRISC/dvsim/commit/e51132f031484a6af1012274a181a46f3e186381))
+
+
 ## v1.29.1 (2026-04-10)
 
 ### Refactoring
