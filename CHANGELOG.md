@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.30.1 (2026-04-10)
+
+### Bug Fixes
+
+- Stop stdout/stderr line buffering in local interactive jobs
+  ([`7098bbf`](https://github.com/lowRISC/dvsim/commit/7098bbf66c5fa7ede88667cd769ba7256de3b85d))
+
+
 ## v1.30.0 (2026-04-10)
 
 ### Bug Fixes
