@@ -21,11 +21,7 @@ from dvsim.flow.hjson import set_target_attribute
 from dvsim.job.data import CompletedJobStatus, JobSpec, WorkspaceConfig
 from dvsim.job.status import JobStatus
 from dvsim.logging import log
-from dvsim.runtime.fake import FakeRuntimeBackend
-from dvsim.runtime.registry import backend_registry
-from dvsim.scheduler.core import Scheduler
-from dvsim.scheduler.log_manager import LogManager
-from dvsim.scheduler.status_printer import create_status_printer
+from dvsim.scheduler.runner import build_default_scheduler_backend, run_scheduler
 from dvsim.utils import (
     find_and_substitute_wildcards,
     rm_path,
@@ -471,74 +467,18 @@ class FlowCfg(ABC):
                 ),
             )
 
-        return asyncio.run(self.run_scheduler(jobs))
-
-    async def run_scheduler(self, jobs: list[JobSpec]) -> list[CompletedJobStatus]:
-        """Run the scheduler with the given set of job specifications."""
-        # Create the runtime backends. TODO: support multiple runtime backends at once
-        default_backend = backend_registry.create(name=None)
-
-        # If we're using the fake backend, tell it *how* to fake jobs for this flow.
-        if isinstance(default_backend, FakeRuntimeBackend):
-            default_backend.attach_fake_policy(self._fake_policy)
-
-        max_timeout = max((job.timeout_mins for job in jobs if job.timeout_mins), default=0)
-
-        scheduler = Scheduler(
-            jobs=jobs,
-            backends={default_backend.name: default_backend},
-            default_backend=default_backend.name,
-            max_parallelism=self.args.max_parallel,
-            # The scheduler prioritizes jobs in (lexicographically) decreasing order based on
-            # the given `priority_fn`. We hence define a prioritization scheme that prioritizes
-            # first by decreasing weight, then by decreasing timeout, and finally by the decreasing
-            # number of jobs that depend on this job.
-            priority_fn=lambda job: (
-                job.spec.weight,
-                job.spec.timeout_mins or max_timeout + 1,
-                len(job.dependents),
-            ),
+        backend = build_default_scheduler_backend(
+            fake_policy=self._fake_policy,
         )
 
-        if not self.interactive:
-            status_printer = create_status_printer(jobs)
-
-            # Add status printer hooks
-            scheduler.add_run_start_callback(status_printer.start)
-            scheduler.add_job_status_change_callback(status_printer.update_status)
-            scheduler.add_run_end_callback(status_printer.stop)
-            scheduler.add_kill_signal_callback(status_printer.pause)
-
-        # Add log manager hooks
-        log_manager = LogManager(jobs)
-        scheduler.add_job_status_change_callback(
-            lambda spec, _old, new: log_manager.on_job_status_change(spec, new)
-        )
-
-        # Setup instrumentation
-        inst = instrumentation.get()
-        if inst is not None:
-            inst.start()
-
-            # Add instrumentation hooks
-            scheduler.add_run_start_callback(inst.on_scheduler_start)
-            scheduler.add_run_end_callback(inst.on_scheduler_end)
-            scheduler.add_job_status_change_callback(
-                lambda spec, _old, new: inst.on_job_status_change(spec, new)
+        return asyncio.run(
+            run_scheduler(
+                jobs=jobs,
+                max_parallel=self.args.max_parallel,
+                interactive=self.interactive,
+                backend=backend,
             )
-
-        # Run the scheduler and cleanup
-        try:
-            results = await scheduler.run()
-        finally:
-            await default_backend.close()
-
-        # Finalize instrumentation
-        if inst is not None:
-            inst.stop()
-            instrumentation.flush()
-
-        return results
+        )
 
     @abstractmethod
     def gen_results(self, results: Sequence[CompletedJobStatus]) -> None:
