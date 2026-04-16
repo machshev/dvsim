@@ -2,6 +2,34 @@
 
 <!-- version list -->
 
+## v1.31.0 (2026-04-16)
+
+### Bug Fixes
+
+- Z01x sim tool build time parsing
+  ([`b8d553c`](https://github.com/lowRISC/dvsim/commit/b8d553c8956c66ce176a899edb68c76423780f35))
+
+### Continuous Integration
+
+- Use lowrisc/ci-actions for token acquisition
+  ([`95f8269`](https://github.com/lowRISC/dvsim/commit/95f826983e4c23665aa328f3ba2349a05eb91531))
+
+### Documentation
+
+- Correct sim tool doc messages
+  ([`ef416e4`](https://github.com/lowRISC/dvsim/commit/ef416e42f13d58994fa18d48888d5b21b6772c5e))
+
+### Features
+
+- Add z01x runtime and simulated time log parsing
+  ([`3311a96`](https://github.com/lowRISC/dvsim/commit/3311a9692cc1fc90f1a6ea8d8eec9bea3fb9e11a))
+
+### Refactoring
+
+- Replace simulation tool `SyntaxError` with `RuntimeError`
+  ([`784a9c6`](https://github.com/lowRISC/dvsim/commit/784a9c6bc38ac60fff55d55132aeebe5af2f2bb4))
+
+
 ## v1.30.1 (2026-04-10)
 
 ### Bug Fixes
