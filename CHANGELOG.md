@@ -2,6 +2,41 @@
 
 <!-- version list -->
 
+## v1.32.0 (2026-04-17)
+
+### Bug Fixes
+
+- Handle missing score metric in Xcelium sim tool coverage summary
+  ([`1cc4dfc`](https://github.com/lowRISC/dvsim/commit/1cc4dfc384da98509cc0ea3f52973f6ddcffe4fe))
+
+- Remove superfluous `Path` construction in xcelium sim tool
+  ([`b4c1c24`](https://github.com/lowRISC/dvsim/commit/b4c1c2417838a3e0299fb747bda92e134de30b5e))
+
+- Xcelium sim tool pyright/ruff errors
+  ([`5cd1ea1`](https://github.com/lowRISC/dvsim/commit/5cd1ea10180705240ff494f847e966b38badf3a5))
+
+### Features
+
+- Add command line resource options & integrate with the base flow
+  ([`bdc4098`](https://github.com/lowRISC/dvsim/commit/bdc4098a6d4db9a1884dc1a1a0f3cd68a0c65555))
+
+- Integrate resources into the scheduler to limit parallelism
+  ([`f205446`](https://github.com/lowRISC/dvsim/commit/f2054466243fbbe278f2dd97d15c2bcd3822a7f3))
+
+- Introduce ResourceProvider abstraction and a ResourceManager
+  ([`3713a07`](https://github.com/lowRISC/dvsim/commit/3713a078fbd14b452a901204eb432283519380e3))
+
+### Refactoring
+
+- Change Scheduler `max_parallelism` type
+  ([`d3494a3`](https://github.com/lowRISC/dvsim/commit/d3494a3c35147fc5c378f7147d19495707cb6ae6))
+
+### Testing
+
+- Add scheduler tests for resource-level parallelism
+  ([`030a584`](https://github.com/lowRISC/dvsim/commit/030a58440e6981b7bcbeca8ede4bb98edbd015f2))
+
+
 ## v1.31.0 (2026-04-16)
 
 ### Bug Fixes
