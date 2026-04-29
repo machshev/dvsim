@@ -17,6 +17,24 @@ logger = logging.getLogger(__name__)
 # below 50 characters, with occasional outliers.
 COMMIT_MSG_MAX_SUMMARY_LEN = 100
 
+# Conventional commit types (https://www.conventionalcommits.org/)
+CONVENTIONAL_COMMIT_TYPES = {
+    "feat",
+    "fix",
+    "docs",
+    "style",
+    "refactor",
+    "perf",
+    "test",
+    "chore",
+    "ci",
+    "build",
+    "revert",
+}
+
+# Matches: <type>[(<scope>)][!]: <description>
+CONVENTIONAL_COMMIT_RE = re.compile(r"^(?P<type>[a-z]+)(\([^)]+\))?!?: .+")
+
 
 def error(msg: str, commit: str | None = None) -> None:
     """Log error."""
@@ -80,6 +98,25 @@ def lint_commit_message(commit: str) -> bool:
             f"The summary line in the commit message is {summary_line_len} "
             f"characters long; only {COMMIT_MSG_MAX_SUMMARY_LEN} characters "
             "are allowed.",
+            commit,
+        )
+        success = False
+
+    # Check conventional commit format.
+    cc_match = CONVENTIONAL_COMMIT_RE.match(lines[0])
+    if cc_match is None:
+        error(
+            f"The summary line {lines[0]!r} does not follow the conventional "
+            "commit format. Expected: <type>[(<scope>)][!]: <description>. "
+            f"Valid types are: {', '.join(sorted(CONVENTIONAL_COMMIT_TYPES))}. "
+            "See https://www.conventionalcommits.org/ for details.",
+            commit,
+        )
+        success = False
+    elif cc_match.group("type") not in CONVENTIONAL_COMMIT_TYPES:
+        error(
+            f"The commit type {cc_match.group('type')!r} is not recognised. "
+            f"Valid types are: {', '.join(sorted(CONVENTIONAL_COMMIT_TYPES))}.",
             commit,
         )
         success = False
