@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v1.33.0 (2026-04-29)
+
+### Continuous Integration
+
+- Bump all checkout actions from v4 to v6
+  ([`cccf592`](https://github.com/lowRISC/dvsim/commit/cccf59244613e1ff4d845b4e5fa376d45f9e75a3))
+
+- Bump all download-artifact actions from v4 to v8
+  ([`2435507`](https://github.com/lowRISC/dvsim/commit/2435507e2b31f3f25c58c5ac56cb12afd971a6ae))
+
+- Bump all upload-artifact actions from v4 to v7
+  ([`650de78`](https://github.com/lowRISC/dvsim/commit/650de785f98e0c51ca6b304f16f484176e7fc35f))
+
+- Bump set-uv action from v6 to v8
+  ([`d5d3992`](https://github.com/lowRISC/dvsim/commit/d5d399292d2df06849e60b960ab5416d1fba794a))
+
+### Features
+
+- **ci**: Enforce conventional commits
+  ([`547ce37`](https://github.com/lowRISC/dvsim/commit/547ce37d55d44e9b429962979fd62c6e41fbc054))
+
+
 ## v1.32.0 (2026-04-17)
 
 ### Bug Fixes
