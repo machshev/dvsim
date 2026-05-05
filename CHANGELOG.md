@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.34.0 (2026-05-05)
+
+### Features
+
+- Show the failure bucket size in the block HTML report
+  ([`df2442d`](https://github.com/lowRISC/dvsim/commit/df2442d618888bf68d5fe439aff30dcd7e9a84e9))
+
+- Sort failure buckets in the HTML block reports
+  ([`ae76b02`](https://github.com/lowRISC/dvsim/commit/ae76b0205ec7baede45798e3309f4d910ae1b9bf))
+
+### Refactoring
+
+- Line -> context_line to avoid naming conflict in report
+  ([`c57bba6`](https://github.com/lowRISC/dvsim/commit/c57bba6c6b5aed5a069a0d7de3b3e19eeae7f22c))
+
+
 ## v1.33.1 (2026-05-01)
 
 ### Bug Fixes
