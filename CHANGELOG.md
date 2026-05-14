@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v1.34.2 (2026-05-14)
+
+### Refactoring
+
+- Remove unnecessary `NoOpInstrumentation`
+  ([`78892f6`](https://github.com/lowRISC/dvsim/commit/78892f69c9a5c048a74800799b28006bfee4dead))
+
+- Replace CompositeInstrumentation with an aggregator
+  ([`dced416`](https://github.com/lowRISC/dvsim/commit/dced41609f8abf51a2f7418a2ef7a0132bad496d))
+
+- Use `JobSpec.id` in instrumentation
+  ([`da9f705`](https://github.com/lowRISC/dvsim/commit/da9f705dac26762f694aa25b6edd2331c3e3777c))
+
+
 ## v1.34.1 (2026-05-14)
 
 ### Bug Fixes
