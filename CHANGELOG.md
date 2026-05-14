@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.35.0 (2026-05-14)
+
+### Features
+
+- Add a pydantic model for the combined instrumentation results
+  ([`0c6432a`](https://github.com/lowRISC/dvsim/commit/0c6432a66af60456337bf1059776cca16693b3bd))
+
+- Switch to pydantic models for instrumentation metrics
+  ([`fcb73c5`](https://github.com/lowRISC/dvsim/commit/fcb73c52abda8058650e43e29e56f331b8c5dde3))
+
+### Refactoring
+
+- Introduce explicit instrumentation name field
+  ([`fb06b9c`](https://github.com/lowRISC/dvsim/commit/fb06b9cb97d3ff4746764553a4d3614b0ef0a30d))
+
+
 ## v1.34.2 (2026-05-14)
 
 ### Refactoring
