@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.34.1 (2026-05-14)
+
+### Bug Fixes
+
+- Extraneous underscore inserted after block names without variants
+  ([`9a4b0ef`](https://github.com/lowRISC/dvsim/commit/9a4b0efc13f131024c393382f9dc0243e884d1d2))
+
+
 ## v1.34.0 (2026-05-05)
 
 ### Features
