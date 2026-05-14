@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v1.36.0 (2026-05-14)
+
+### Features
+
+- Add `all` instrumentation CLI option
+  ([`9df1f38`](https://github.com/lowRISC/dvsim/commit/9df1f3852db6683e59e062f54bd1892d9c6f199a))
+
+- Make metadata an explicit instrumentation type
+  ([`2216399`](https://github.com/lowRISC/dvsim/commit/2216399a2d064305931b8091d129a5ab42a13048))
+
+- Rename resources instrumentation to compute instrumentation
+  ([`e202d9a`](https://github.com/lowRISC/dvsim/commit/e202d9a3ff5c3ab9a4a14c4d2d421d5969b0d6c0))
+
+### Refactoring
+
+- Use the instrumentation name attribute in the registry
+  ([`7496527`](https://github.com/lowRISC/dvsim/commit/749652785581f079c34aff3cb7d088488cd4655a))
+
+
 ## v1.35.0 (2026-05-14)
 
 ### Features
