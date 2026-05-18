@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.37.0 (2026-05-18)
+
+### Features
+
+- Add block information to the instrumentation job metadata
+  ([`27876cb`](https://github.com/lowRISC/dvsim/commit/27876cb014828ddbce7596c08e67a6891b00a6dd))
+
+
 ## v1.36.0 (2026-05-14)
 
 ### Features
