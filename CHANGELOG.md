@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v1.38.0 (2026-05-19)
+
+### Build System
+
+- Add plotly dependency for instrumentation graph visualisations
+  ([`6c54a80`](https://github.com/lowRISC/dvsim/commit/6c54a80e5e89ff536b335ff70bca0d8e97af30ef))
+
+### Documentation
+
+- Add pull request template
+  ([`afdd66a`](https://github.com/lowRISC/dvsim/commit/afdd66acc51f1e96b9fbf783e663924731e4c5d9))
+
+- Add releasing.md to document the automated release processes
+  ([`c8c853c`](https://github.com/lowRISC/dvsim/commit/c8c853ca9517799294e265827bf1688a9d339672))
+
+- Update CONTRIBUTING.md
+  ([`ad3e828`](https://github.com/lowRISC/dvsim/commit/ad3e8283f6c0b302d703f9b083833a653f2fb676))
+
+### Features
+
+- Add head block to the HTML report wrapper template
+  ([`42e1b17`](https://github.com/lowRISC/dvsim/commit/42e1b17a745a566c364d3d23933fa66309c0e74b))
+
+- Add HTML instrumentation report generation
+  ([`1b6b4d8`](https://github.com/lowRISC/dvsim/commit/1b6b4d860cde9dc62f6b5ce8f21ee404e87505a3))
+
+- Add instrumentation report rendering from template
+  ([`b03c729`](https://github.com/lowRISC/dvsim/commit/b03c729010e610f6ca88a1727676af981b7d84bc))
+
+- Add instrumentation report visualisation registry
+  ([`afd4278`](https://github.com/lowRISC/dvsim/commit/afd427803df705c370f84d82354e87dbc1f3e703))
+
+- Introduce instrumentation report visualisation protocol
+  ([`e8d2009`](https://github.com/lowRISC/dvsim/commit/e8d2009498d3d994b2108040c66d8415e01398ff))
+
+
 ## v1.37.0 (2026-05-18)
 
 ### Features
