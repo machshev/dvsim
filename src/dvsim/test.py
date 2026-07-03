@@ -6,7 +6,14 @@ import sys
 from copy import deepcopy
 
 from dvsim.logging import log
-from dvsim.modes import RunMode, find_mode, find_mode_list
+from dvsim.modes import RunMode, RunModeConfig, find_mode, find_mode_list
+
+
+class TestConfig(RunModeConfig):
+    """Schema for an entry of `tests`.
+
+    A test is a run mode configured with the same set of attributes.
+    """
 
 
 class Test(RunMode):
@@ -16,6 +23,8 @@ class Test(RunMode):
 
     # Maintain a list of tests str
     item_names = []
+
+    config_cls = TestConfig
 
     # TODO: This info should be passed via hjson
     defaults = {
@@ -42,7 +51,7 @@ class Test(RunMode):
         for tdict in tdicts:
             # Create a new item
             new_test_merged = False
-            new_test = Test(tdict)
+            new_test = Test.mode_from_dict(tdict)
             for test in tests_objs:
                 # Merge new one with existing if available
                 if test.name == new_test.name:

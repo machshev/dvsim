@@ -4,9 +4,45 @@
 
 import sys
 
+from pydantic import BaseModel, ConfigDict
+
 from dvsim.logging import log
 from dvsim.modes import Mode, find_mode, find_mode_list
 from dvsim.test import Test
+
+
+class RegressionConfig(BaseModel):
+    """Schema for an entry of `regressions`.
+
+    This is the single source of truth for the attributes of `Regression`.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+
+    tests: list[str] | None = None
+    """Tests in this regression.
+
+    There are 3 possible cases after all the HJson files are parsed, when
+    this particular regression is supplied to be run:
+
+    1. `tests` == None:   This is treated as "run ALL available tests".
+    2. `tests` == []:     No available tests to run
+    3. `len(tests)` > 0:  The provided set of tests are run.
+    """
+
+    excl_tests: list[str] = []  # TODO: add support for this
+    reseed: int | None = None
+    en_sim_modes: list[str] = []
+    en_run_modes: list[str] = []
+    pre_build_cmds: list[str] = []
+    post_build_cmds: list[str] = []
+    pre_run_cmds: list[str] = []
+    post_run_cmds: list[str] = []
+    build_opts: list[str] = []
+    post_build_opts: list[str] = []
+    run_opts: list[str] = []
 
 
 class Regression(Mode):
@@ -15,31 +51,15 @@ class Regression(Mode):
     # Maintain a list of tests str
     item_names = []
 
-    def __init__(self, regdict) -> None:
-        self.name = ""
+    config_cls = RegressionConfig
 
-        # The `tests` member is typically a list, but it defaults to None.
-        # There are 3 possible cases after all the HJson files are parsed, when
-        # this particular regression is supplied to be run:
-        #
-        # 1. `tests` == None:   This is treated as "run ALL available tests".
-        # 2. `tests` == []:     No available tests to run
-        # 3. `len(tests)` > 0:  The provided set of tests are run.
-        self.tests = None
+    def __init__(self, cfg: RegressionConfig) -> None:
+        """Initialise a regression from its validated config."""
+        super().__init__(cfg)
+
+        # Internal state (not configurable): names of the tests resolved for
+        # this regression, filled in by `create_regressions`.
         self.test_names = []
-
-        self.reseed = None
-        self.excl_tests = []  # TODO: add support for this
-        self.en_sim_modes = []
-        self.en_run_modes = []
-        self.pre_build_cmds = []
-        self.post_build_cmds = []
-        self.pre_run_cmds = []
-        self.post_run_cmds = []
-        self.build_opts = []
-        self.post_build_opts = []
-        self.run_opts = []
-        super().__init__("regression", regdict)
 
     @staticmethod
     def create_regressions(regdicts, sim_cfg, tests):
@@ -51,7 +71,7 @@ class Regression(Mode):
         for regdict in regdicts:
             # Create a new item
             new_regression_merged = False
-            new_regression = Regression(regdict)
+            new_regression = Regression.mode_from_dict(regdict)
 
             # Check for name conflicts with tests before merging
             if new_regression.name in Test.item_names:

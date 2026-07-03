@@ -6,17 +6,19 @@
 
 `SimFlowConfig` validates the merged hjson data for a sim flow config (the
 output of `dvsim.flow.hjson.load_hjson`) before it is merged into a `SimCfg`.
-The mode / test / regression sub-schemas mirror the attributes of the
-corresponding classes in `dvsim.modes`, `dvsim.test` and `dvsim.regression`
-and reject unknown keys, catching typos at load time instead of deep inside
-mode merging.
+The mode / test / regression sub-schemas are defined next to the classes they
+configure (`dvsim.modes`, `dvsim.test`, `dvsim.regression`) and reject unknown
+keys, catching typos at load time instead of deep inside mode merging.
 """
 
 from collections.abc import Mapping, Sequence
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import ConfigDict, ValidationError
 
 from dvsim.flow.config import FlowConfig
+from dvsim.modes import BuildModeConfig, RunModeConfig
+from dvsim.regression import RegressionConfig
+from dvsim.test import TestConfig
 
 __all__ = (
     "BuildModeConfig",
@@ -26,75 +28,6 @@ __all__ = (
     "TestConfig",
     "validate_sim_cfg_data",
 )
-
-
-class BuildModeConfig(BaseModel):
-    """Schema for an entry of `build_modes` (see `dvsim.modes.BuildMode`)."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    name: str
-    is_sim_mode: int = 0
-    pre_build_cmds: Sequence[str] = ()
-    post_build_cmds: Sequence[str] = ()
-    en_build_modes: Sequence[str] = ()
-    build_opts: Sequence[str] = ()
-    post_build_opts: Sequence[str] = ()
-    build_timeout_mins: int | None = None
-    pre_run_cmds: Sequence[str] = ()
-    post_run_cmds: Sequence[str] = ()
-    run_opts: Sequence[str] = ()
-    sw_images: Sequence[str] = ()
-    sw_build_opts: Sequence[str] = ()
-
-
-class RunModeConfig(BaseModel):
-    """Schema for an entry of `run_modes` (see `dvsim.modes.RunMode`)."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    name: str
-    reseed: int | None = None
-    pre_run_cmds: Sequence[str] = ()
-    post_run_cmds: Sequence[str] = ()
-    en_run_modes: Sequence[str] = ()
-    run_opts: Sequence[str] = ()
-    uvm_test: str = ""
-    uvm_test_seq: str = ""
-    build_mode: str = ""
-    run_timeout_mins: int | None = None
-    run_timeout_multiplier: float | None = None
-    sw_images: Sequence[str] = ()
-    sw_build_device: str = ""
-    sw_build_opts: Sequence[str] = ()
-
-
-class TestConfig(RunModeConfig):
-    """Schema for an entry of `tests` (see `dvsim.test.Test`).
-
-    A test is a run mode with the same set of attributes.
-    """
-
-
-class RegressionConfig(BaseModel):
-    """Schema for an entry of `regressions` (see `dvsim.regression.Regression`)."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    name: str
-    tests: Sequence[str] | None = None
-    """Tests in this regression; absent/None means "run all available tests"."""
-    excl_tests: Sequence[str] = ()
-    reseed: int | None = None
-    en_sim_modes: Sequence[str] = ()
-    en_run_modes: Sequence[str] = ()
-    pre_build_cmds: Sequence[str] = ()
-    post_build_cmds: Sequence[str] = ()
-    pre_run_cmds: Sequence[str] = ()
-    post_run_cmds: Sequence[str] = ()
-    build_opts: Sequence[str] = ()
-    post_build_opts: Sequence[str] = ()
-    run_opts: Sequence[str] = ()
 
 
 class SimFlowConfig(FlowConfig):

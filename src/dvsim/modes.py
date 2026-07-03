@@ -6,40 +6,92 @@
 
 import sys
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any
+from typing import Any, ClassVar
 
+from pydantic import BaseModel, ConfigDict, ValidationError
 from typing_extensions import Self
 
 from dvsim.logging import log
+
+
+class BuildModeConfig(BaseModel):
+    """Schema for an entry of `build_modes`.
+
+    This is the single source of truth for the attributes of `BuildMode`.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    is_sim_mode: int = 0
+    pre_build_cmds: list[str] = []
+    post_build_cmds: list[str] = []
+    en_build_modes: list[str] = []
+    build_opts: list[str] = []
+    post_build_opts: list[str] = []
+    build_timeout_mins: int | None = None
+    pre_run_cmds: list[str] = []
+    post_run_cmds: list[str] = []
+    run_opts: list[str] = []
+    sw_images: list[str] = []
+    sw_build_opts: list[str] = []
+
+
+class RunModeConfig(BaseModel):
+    """Schema for an entry of `run_modes`.
+
+    This is the single source of truth for the attributes of `RunMode`.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    reseed: int | None = None
+    pre_run_cmds: list[str] = []
+    post_run_cmds: list[str] = []
+    en_run_modes: list[str] = []
+    run_opts: list[str] = []
+    uvm_test: str = ""
+    uvm_test_seq: str = ""
+    build_mode: str = ""
+    run_timeout_mins: int | None = None
+    run_timeout_multiplier: float | None = None
+    sw_images: list[str] = []
+    sw_build_device: str = ""
+    sw_build_opts: list[str] = []
 
 
 class Mode:
     """A collection of options that represents a single mode.
 
     This might be a run mode (options for an EDA tool?), a build mode, a test
-    or a regression.
+    or a regression. The mode's attributes are defined by its config schema
+    (`config_cls`), which the raw hjson dicts are validated against.
     """
 
-    def __init__(self, type_name: str, mdict) -> None:
-        """Initialise mode."""
-        keys = mdict.keys()
-        attrs = self.__dict__.keys()
+    # Set in subclasses: the schema describing this mode's attributes.
+    config_cls: ClassVar[type[BaseModel]]
 
-        if "name" not in keys:
-            log.error('Key "name" missing in mode %s', mdict)
+    def __init__(self, cfg: BaseModel) -> None:
+        """Initialise mode attributes from a validated config model."""
+        for key, value in cfg.model_dump().items():
+            setattr(self, key, value)
+
+    @classmethod
+    def mode_from_dict(cls, mdict: Mapping[str, Any]) -> Self:
+        """Create a mode from a raw dict, validating it against the mode's schema."""
+        try:
+            cfg = cls.config_cls.model_validate(mdict)
+        except ValidationError as err:
+            log.error(
+                "Invalid %s entry %s:\n%s",
+                cls.__name__,
+                dict(mdict),
+                err,
+            )
             sys.exit(1)
 
-        for key in keys:
-            if key not in attrs:
-                log.error(
-                    "Key %s in %s is invalid. Supported attributes for a %s are %s",
-                    key,
-                    mdict,
-                    type_name,
-                    attrs,
-                )
-                sys.exit(1)
-            setattr(self, key, mdict[key])
+        return cls(cfg)
 
     def get_sub_modes(self) -> Sequence[str]:
         # Default behaviour is not to have sub-modes
@@ -201,7 +253,7 @@ class Mode:
         for mdict in mdicts:
             # Create a new item
             new_mode_merged = False
-            new_mode = cls(mdict)
+            new_mode = cls.mode_from_dict(mdict)
             for mode in modes_objs:
                 # Merge new one with existing if available
                 if mode.name == new_mode.name:
@@ -261,22 +313,11 @@ class BuildMode(Mode):
     # Maintain a list of build_modes str
     item_names = []
 
-    def __init__(self, bdict) -> None:
-        self.name = ""
-        self.is_sim_mode = 0
-        self.pre_build_cmds = []
-        self.post_build_cmds = []
-        self.en_build_modes = []
-        self.build_opts = []
-        self.post_build_opts = []
-        self.build_timeout_mins = None
-        self.pre_run_cmds = []
-        self.post_run_cmds = []
-        self.run_opts = []
-        self.sw_images = []
-        self.sw_build_opts = []
+    config_cls = BuildModeConfig
 
-        super().__init__("build mode", bdict)
+    def __init__(self, cfg: BuildModeConfig) -> None:
+        """Initialise a build mode from its validated config."""
+        super().__init__(cfg)
         self.en_build_modes = list(set(self.en_build_modes))
 
     def get_sub_modes(self) -> Sequence[str]:
@@ -287,7 +328,7 @@ class BuildMode(Mode):
 
     @staticmethod
     def get_default_mode():
-        return BuildMode({"name": "default"})
+        return BuildMode(BuildModeConfig(name="default"))
 
 
 class RunMode(Mode):
@@ -296,23 +337,11 @@ class RunMode(Mode):
     # Maintain a list of run_modes str
     item_names = []
 
-    def __init__(self, rdict) -> None:
-        self.name = ""
-        self.reseed = None
-        self.pre_run_cmds = []
-        self.post_run_cmds = []
-        self.en_run_modes = []
-        self.run_opts = []
-        self.uvm_test = ""
-        self.uvm_test_seq = ""
-        self.build_mode = ""
-        self.run_timeout_mins = None
-        self.run_timeout_multiplier = None
-        self.sw_images = []
-        self.sw_build_device = ""
-        self.sw_build_opts = []
+    config_cls = RunModeConfig
 
-        super().__init__("run mode", rdict)
+    def __init__(self, cfg: RunModeConfig) -> None:
+        """Initialise a run mode from its validated config."""
+        super().__init__(cfg)
         self.en_run_modes = list(set(self.en_run_modes))
 
     def get_sub_modes(self) -> list[str]:
