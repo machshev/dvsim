@@ -29,6 +29,7 @@ from dvsim.job.status import JobStatus
 from dvsim.logging import log
 from dvsim.modes import BuildMode, Mode, RunMode, find_mode
 from dvsim.regression import Regression
+from dvsim.sim.config import validate_sim_cfg_data
 from dvsim.sim.data import (
     IPMeta,
     SimFlowResults,
@@ -181,6 +182,20 @@ class SimCfg(FlowCfg):
         self.results_summary = OrderedDict()
 
         super().__init__(flow_cfg_file, hjson_data, args, mk_config)
+
+    def _merge_hjson(self, hjson_data: Mapping) -> None:
+        """Validate the loaded hjson data against the sim config schema, then merge.
+
+        Only the keys actually present in the hjson data are merged, so the
+        schema defaults never override the defaults set in `__init__`.
+        """
+        try:
+            validated = validate_sim_cfg_data(self.flow_cfg_file, hjson_data)
+        except RuntimeError as err:
+            log.error(str(err))
+            sys.exit(1)
+
+        super()._merge_hjson(validated)
 
     def _expand(self) -> None:
         # Choose a wave format now. Note that this has to happen after parsing
