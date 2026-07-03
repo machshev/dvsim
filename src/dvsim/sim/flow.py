@@ -14,6 +14,8 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import ClassVar
 
+from pydantic import ValidationError
+
 from dvsim.flow.base import FlowCfg
 from dvsim.job.data import CompletedJobStatus, JobSpec
 from dvsim.job.deploy import (
@@ -29,7 +31,7 @@ from dvsim.job.status import JobStatus
 from dvsim.logging import log
 from dvsim.modes import BuildMode, Mode, RunMode, find_mode
 from dvsim.regression import Regression
-from dvsim.sim.config import validate_sim_cfg_data
+from dvsim.sim.config import SimFlowConfig, load_sim_flow_config
 from dvsim.sim.data import (
     IPMeta,
     SimFlowResults,
@@ -61,6 +63,12 @@ class SimCfg(FlowCfg):
 
     A simulation configuration class holds key information required for building
     a DV regression framework.
+
+    Unlike the dict-based flows, the sim flow keeps its config-file state in
+    `self.config`, a validated `SimFlowConfig` model. Attribute reads fall
+    through to the model (see `__getattr__`), while runtime state lives on the
+    instance as usual and shadows config values where the names collide (e.g.
+    `testplan` is rebound to a `Testplan` object once parsed).
     """
 
     flow = "sim"
@@ -83,13 +91,6 @@ class SimCfg(FlowCfg):
 
     def __init__(self, flow_cfg_file, hjson_data, args, mk_config) -> None:
         # Options set from command line
-        self.build_opts = []
-        self.build_opts.extend(args.build_opts)
-        self.en_build_modes = args.build_modes.copy()
-        self.run_opts = []
-        self.run_opts.extend(args.run_opts)
-        self.en_run_modes = []
-        self.en_run_modes.extend(args.run_modes)
         self.build_unique = args.build_unique
         self.build_seed = args.build_seed
         self.build_only = args.build_only
@@ -104,74 +105,38 @@ class SimCfg(FlowCfg):
         self.cov_merge_previous = args.cov_merge_previous
         self.profile = args.profile or "(cfg uses profile without --profile)"
         self.xprop_off = args.xprop_off
-        self.verbosity = None  # set in _expand
         self.verbose = args.verbose
         self.dry_run = args.dry_run
         self.map_full_testplan = args.map_full_testplan
 
         # Set default sim modes for unpacking
+        en_build_modes = args.build_modes.copy()
         if args.gui:
-            self.en_build_modes.append("gui")
+            en_build_modes.append("gui")
         if args.gui_debug:
-            self.en_build_modes.append("gui_debug")
+            en_build_modes.append("gui_debug")
         if args.waves is not None:
-            self.en_build_modes.append("waves")
+            en_build_modes.append("waves")
         else:
-            self.en_build_modes.append("waves_off")
+            en_build_modes.append("waves_off")
         if self.cov is True:
-            self.en_build_modes.append("cov")
+            en_build_modes.append("cov")
         if args.profile is not None:
-            self.en_build_modes.append("profile")
+            en_build_modes.append("profile")
         if self.xprop_off is not True:
-            self.en_build_modes.append("xprop")
+            en_build_modes.append("xprop")
         if self.build_seed:
-            self.en_build_modes.append("build_seed")
+            en_build_modes.append("build_seed")
 
-        # Options built from cfg_file files
-        self.project = ""
-        self.flow = ""
-        self.flow_makefile = ""
-        self.pre_build_cmds = []
-        self.post_build_cmds = []
-        self.post_build_opts = []
-        self.build_dir = ""
-        self.pre_run_cmds = []
-        self.post_run_cmds = []
-        self.run_dir = ""
-        self.sw_images = []
-        self.sw_build_opts = []
-        self.pass_patterns = []
-        self.fail_patterns = []
-        self.variant = ""
-        self.dut = ""
-        self.tb = ""
-        self.testplan = ""
-        self.fusesoc_core = ""
-        self.ral_spec = ""
-        self.build_modes = []
-        self.run_modes = []
-        self.regressions = []
-        self.supported_wave_formats = None
-
-        # Options from cfg files used for reports / documentation
-        self.testplan_doc_path = ""
-        self.book = ""
-        self.cov_report_dir = ""
-        self.cov_report_page = ""
-
-        # Options for vPlan processing
-        # dut_instance is the hierarchical testbench path to the DUT (e.g. "tb.dut"),
-        # distinct from `name`/`qual_name` which identify the sim config itself.
-        self.dut_instance = ""
-        self.cov_vplan_prepare_opts = []
-        self.cov_vplan_process_opts = []
-
-        # Options from tools - for building and running tests
-        self.build_cmd = ""
-        self.flist_gen_cmd = ""
-        self.flist_gen_opts = []
-        self.flist_file = ""
-        self.run_cmd = ""
+        # Command-line options that seed config list values. These are folded
+        # into the config model in _merge_hjson: the command-line values come
+        # first and the values from the hjson config files are appended.
+        self._cli_config_seeds = {
+            "build_opts": list(args.build_opts),
+            "en_build_modes": en_build_modes,
+            "run_opts": list(args.run_opts),
+            "en_run_modes": list(args.run_modes),
+        }
 
         # Generated data structures
         self.variant_name = ""
@@ -183,19 +148,126 @@ class SimCfg(FlowCfg):
 
         super().__init__(flow_cfg_file, hjson_data, args, mk_config)
 
-    def _merge_hjson(self, hjson_data: Mapping) -> None:
-        """Validate the loaded hjson data against the sim config schema, then merge.
+    def __getattr__(self, name: str):
+        """Fall back to the config model for attribute reads.
 
-        Only the keys actually present in the hjson data are merged, so the
-        schema defaults never override the defaults set in `__init__`.
+        Only invoked when normal attribute lookup fails, so runtime instance
+        attributes (including ones shadowing config keys) take precedence.
+        Only config keys are delegated - the model's own API is not exposed.
+        """
+        config = self.__dict__.get("config")
+        if (
+            config is not None
+            and not (name.startswith("__") and name.endswith("__"))
+            and (name in SimFlowConfig.model_fields or name in (config.model_extra or {}))
+        ):
+            return getattr(config, name)
+
+        msg = f"{type(self).__name__!r} object has no attribute {name!r}"
+        raise AttributeError(msg)
+
+    def _is_config_key(self, name: str) -> bool:
+        """Whether `name` is a key managed by the config model."""
+        return name in SimFlowConfig.model_fields or name in (self.config.model_extra or {})
+
+    def _merge_hjson(self, hjson_data: Mapping) -> None:
+        """Load the hjson data into the typed config model.
+
+        Unlike the base class, the sim flow does not merge the hjson data
+        into the instance `__dict__`: the validated `SimFlowConfig` model is
+        the config state and attribute reads fall through to it (see
+        `__getattr__`), with the schema field defaults serving as the config
+        defaults.
         """
         try:
-            validated = validate_sim_cfg_data(self.flow_cfg_file, hjson_data)
+            self.config = load_sim_flow_config(self.flow_cfg_file, hjson_data)
         except RuntimeError as err:
             log.error(str(err))
             sys.exit(1)
 
-        super()._merge_hjson(validated)
+        # Drop the instance defaults set by FlowCfg.__init__ for keys the
+        # config model manages - they would otherwise shadow the config.
+        for key in [k for k in self.__dict__ if self._is_config_key(k)]:
+            del self.__dict__[key]
+
+        # Fold the command-line seeded options into the config. CLI values
+        # come first, matching the historic merge order where hjson values
+        # were appended to the CLI-seeded lists.
+        for key, seed in self._cli_config_seeds.items():
+            setattr(self.config, key, [*seed, *getattr(self.config, key)])
+        del self._cli_config_seeds
+
+    def _process_overrides(self) -> None:
+        """Apply the typed overrides from the config model."""
+        overrides_seen = {}
+        for override in self.config.overrides:
+            if override.name in overrides_seen:
+                log.error(
+                    'Override for key "%s" already exists!\nOld: %s\nNew: %s',
+                    override.name,
+                    overrides_seen[override.name],
+                    override.value,
+                )
+                sys.exit(1)
+            overrides_seen[override.name] = override.value
+            self._do_override(override.name, override.value)
+
+    def _do_override(self, ov_name: str, ov_value: object) -> None:
+        """Override a single attribute, preferring runtime state over config."""
+        in_instance = ov_name in self.__dict__
+        if in_instance:
+            orig_value = self.__dict__[ov_name]
+        elif self._is_config_key(ov_name):
+            orig_value = getattr(self.config, ov_name)
+        else:
+            log.error('Override key "%s" not found in the cfg!', ov_name)
+            sys.exit(1)
+
+        if not isinstance(ov_value, type(orig_value)):
+            log.error(
+                'The type of override value "%s" for "%s" '
+                'doesn\'t match the type of original value "%s"',
+                ov_value,
+                ov_name,
+                orig_value,
+            )
+            sys.exit(1)
+
+        log.debug('Overriding "%s" value "%s" with "%s"', ov_name, orig_value, ov_value)
+        if in_instance:
+            self.__dict__[ov_name] = ov_value
+        else:
+            setattr(self.config, ov_name, ov_value)
+
+    def wildcard_namespace(self) -> dict:
+        """Merge the config model into the wildcard substitution namespace.
+
+        Runtime instance attributes shadow config values of the same name.
+        """
+        namespace = self.config.model_dump()
+        namespace.update(self.__dict__)
+        return namespace
+
+    def _apply_expansion(self, expanded: Mapping) -> None:
+        """Split the expanded namespace back into config and runtime state.
+
+        Keys that live in the instance `__dict__` (runtime state, including
+        shadowed config keys) are updated in place; everything else is config
+        data and is re-validated into a fresh config model.
+        """
+        instance_keys = set(self.__dict__)
+        cfg_data = {k: v for k, v in expanded.items() if k not in instance_keys}
+        self.__dict__.update((k, v) for k, v in expanded.items() if k in instance_keys)
+
+        try:
+            self.config = SimFlowConfig.model_validate(cfg_data)
+        except ValidationError as err:
+            log.error(
+                "%r: config is no longer schema-valid after wildcard expansion:\n%s",
+                self.flow_cfg_file,
+                err,
+            )
+            sys.exit(1)
 
     def _expand(self) -> None:
         # Choose a wave format now. Note that this has to happen after parsing
@@ -244,7 +316,7 @@ class SimCfg(FlowCfg):
             log.info("[scratch_path]: [%s] [%s]", self.name, self.scratch_path)
 
             # Use the default build mode for tests that do not specify it
-            if not hasattr(self, "build_mode"):
+            if not self.build_mode:
                 self.build_mode = "default"
 
             # Set the primary build mode. The coverage associated to this build
@@ -252,7 +324,7 @@ class SimCfg(FlowCfg):
             # of significance only when there are multiple builds. If there is
             # only one build, and its not the primary_build_mode, then we
             # update the primary_build_mode to match what is built.
-            if not hasattr(self, "primary_build_mode"):
+            if not self.primary_build_mode:
                 self.primary_build_mode = self.build_mode
 
             # Create objects from raw dicts - build_modes, sim_modes, run_modes,

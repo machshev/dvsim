@@ -5,11 +5,12 @@
 """Test the sim flow configuration schema."""
 
 import os
+from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
 
-from dvsim.sim.config import validate_sim_cfg_data
+from dvsim.sim.config import load_sim_flow_config
 
 __all__ = ()
 
@@ -22,9 +23,14 @@ MINIMAL_CFG = {
 }
 
 
+def validate(path: str, hjson_data: Mapping) -> dict:
+    """Validate hjson data and dump back only the keys that were present."""
+    return load_sim_flow_config(path, hjson_data).model_dump(exclude_unset=True)
+
+
 def test_minimal_cfg_roundtrips() -> None:
     """Only keys present in the input appear in the validated output."""
-    validated = validate_sim_cfg_data("<test>", MINIMAL_CFG)
+    validated = validate("<test>", MINIMAL_CFG)
 
     assert validated == MINIMAL_CFG
 
@@ -41,7 +47,7 @@ def test_structural_sections_are_validated_and_roundtrip() -> None:
         "exports": [{"SCRATCH_PATH": "{scratch_path}"}, {"VCS_LICENSE_WAIT": 1}],
     }
 
-    validated = validate_sim_cfg_data("<test>", data)
+    validated = validate("<test>", data)
 
     assert validated == data
 
@@ -56,7 +62,7 @@ def test_project_specific_keys_are_allowed() -> None:
         "self_dir": Path("/proj/hw/ip/uart/dv"),
     }
 
-    validated = validate_sim_cfg_data("<test>", data)
+    validated = validate("<test>", data)
 
     assert validated == data
 
@@ -64,7 +70,7 @@ def test_project_specific_keys_are_allowed() -> None:
 def test_unknown_key_with_unsupported_value_type_is_rejected() -> None:
     """Extra keys must hold types the merge / wildcard machinery understands."""
     with pytest.raises(RuntimeError, match="bad_key"):
-        validate_sim_cfg_data("<test>", {**MINIMAL_CFG, "bad_key": None})
+        validate("<test>", {**MINIMAL_CFG, "bad_key": None})
 
 
 def test_typo_in_test_entry_is_rejected() -> None:
@@ -75,13 +81,13 @@ def test_typo_in_test_entry_is_rejected() -> None:
     }
 
     with pytest.raises(RuntimeError, match="uvm_test_sequence"):
-        validate_sim_cfg_data("<test>", data)
+        validate("<test>", data)
 
 
 def test_test_entry_requires_name() -> None:
     """A tests entry without a name is rejected."""
     with pytest.raises(RuntimeError, match="name"):
-        validate_sim_cfg_data("<test>", {**MINIMAL_CFG, "tests": [{"reseed": 3}]})
+        validate("<test>", {**MINIMAL_CFG, "tests": [{"reseed": 3}]})
 
 
 def test_malformed_override_is_rejected() -> None:
@@ -92,13 +98,13 @@ def test_malformed_override_is_rejected() -> None:
     }
 
     with pytest.raises(RuntimeError, match="overrides"):
-        validate_sim_cfg_data("<test>", data)
+        validate("<test>", data)
 
 
 def test_wrong_type_for_known_key_is_rejected() -> None:
     """Known keys are type checked."""
     with pytest.raises(RuntimeError, match="run_opts"):
-        validate_sim_cfg_data("<test>", {**MINIMAL_CFG, "run_opts": "-not-a-list"})
+        validate("<test>", {**MINIMAL_CFG, "run_opts": "-not-a-list"})
 
 
 def _opentitan_root() -> Path:
@@ -114,8 +120,8 @@ def test_schema_against_opentitan_top_earlgrey() -> None:
     """Validate the schema against the full top_earlgrey sim cfg tree.
 
     Every cfg reachable from top_earlgrey_sim_cfgs.hjson must validate and
-    round-trip unchanged (validation must not alter what gets merged into
-    the SimCfg).
+    round-trip unchanged (validation must not alter the config data the
+    SimCfg consumes).
     """
     from dvsim.flow.hjson import load_hjson
     from dvsim.utils import subst_wildcards
@@ -125,7 +131,7 @@ def test_schema_against_opentitan_top_earlgrey() -> None:
 
     def check(path: Path, initial_values: dict) -> dict:
         data = load_hjson(str(path), initial_values)
-        validated = validate_sim_cfg_data(str(path), data)
+        validated = validate(str(path), data)
         assert validated == dict(data), f"{path}: validation altered the config data"
         return data
 

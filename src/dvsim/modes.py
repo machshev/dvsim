@@ -8,7 +8,7 @@ import sys
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, ClassVar
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from typing_extensions import Self
 
 from dvsim.logging import log
@@ -24,17 +24,17 @@ class BuildModeConfig(BaseModel):
 
     name: str
     is_sim_mode: int = 0
-    pre_build_cmds: list[str] = []
-    post_build_cmds: list[str] = []
-    en_build_modes: list[str] = []
-    build_opts: list[str] = []
-    post_build_opts: list[str] = []
+    pre_build_cmds: list[str] = Field(default_factory=list)
+    post_build_cmds: list[str] = Field(default_factory=list)
+    en_build_modes: list[str] = Field(default_factory=list)
+    build_opts: list[str] = Field(default_factory=list)
+    post_build_opts: list[str] = Field(default_factory=list)
     build_timeout_mins: int | None = None
-    pre_run_cmds: list[str] = []
-    post_run_cmds: list[str] = []
-    run_opts: list[str] = []
-    sw_images: list[str] = []
-    sw_build_opts: list[str] = []
+    pre_run_cmds: list[str] = Field(default_factory=list)
+    post_run_cmds: list[str] = Field(default_factory=list)
+    run_opts: list[str] = Field(default_factory=list)
+    sw_images: list[str] = Field(default_factory=list)
+    sw_build_opts: list[str] = Field(default_factory=list)
 
 
 class RunModeConfig(BaseModel):
@@ -47,18 +47,18 @@ class RunModeConfig(BaseModel):
 
     name: str
     reseed: int | None = None
-    pre_run_cmds: list[str] = []
-    post_run_cmds: list[str] = []
-    en_run_modes: list[str] = []
-    run_opts: list[str] = []
+    pre_run_cmds: list[str] = Field(default_factory=list)
+    post_run_cmds: list[str] = Field(default_factory=list)
+    en_run_modes: list[str] = Field(default_factory=list)
+    run_opts: list[str] = Field(default_factory=list)
     uvm_test: str = ""
     uvm_test_seq: str = ""
     build_mode: str = ""
     run_timeout_mins: int | None = None
     run_timeout_multiplier: float | None = None
-    sw_images: list[str] = []
+    sw_images: list[str] = Field(default_factory=list)
     sw_build_device: str = ""
-    sw_build_opts: list[str] = []
+    sw_build_opts: list[str] = Field(default_factory=list)
 
 
 class Mode:

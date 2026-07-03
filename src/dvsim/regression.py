@@ -4,7 +4,7 @@
 
 import sys
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from dvsim.logging import log
 from dvsim.modes import Mode, find_mode, find_mode_list
@@ -32,17 +32,17 @@ class RegressionConfig(BaseModel):
     3. `len(tests)` > 0:  The provided set of tests are run.
     """
 
-    excl_tests: list[str] = []  # TODO: add support for this
+    excl_tests: list[str] = Field(default_factory=list)  # TODO: add support for this
     reseed: int | None = None
-    en_sim_modes: list[str] = []
-    en_run_modes: list[str] = []
-    pre_build_cmds: list[str] = []
-    post_build_cmds: list[str] = []
-    pre_run_cmds: list[str] = []
-    post_run_cmds: list[str] = []
-    build_opts: list[str] = []
-    post_build_opts: list[str] = []
-    run_opts: list[str] = []
+    en_sim_modes: list[str] = Field(default_factory=list)
+    en_run_modes: list[str] = Field(default_factory=list)
+    pre_build_cmds: list[str] = Field(default_factory=list)
+    post_build_cmds: list[str] = Field(default_factory=list)
+    pre_run_cmds: list[str] = Field(default_factory=list)
+    post_run_cmds: list[str] = Field(default_factory=list)
+    build_opts: list[str] = Field(default_factory=list)
+    post_build_opts: list[str] = Field(default_factory=list)
+    run_opts: list[str] = Field(default_factory=list)
 
 
 class Regression(Mode):
@@ -164,7 +164,9 @@ class Regression(Mode):
                 regression_obj.test_names = Test.item_names
 
             else:
-                tests_objs = set()
+                # Dedupe while preserving the order in which the tests are
+                # listed, so that downstream job ordering is deterministic.
+                tests_objs = []
                 regression_obj.test_names = regression_obj.tests
                 for test in regression_obj.tests:
                     test_obj = find_mode(test, sim_cfg.tests)
@@ -175,8 +177,9 @@ class Regression(Mode):
                             regression_obj.name,
                         )
                         continue
-                    tests_objs.add(test_obj)
-                regression_obj.tests = list(tests_objs)
+                    if test_obj not in tests_objs:
+                        tests_objs.append(test_obj)
+                regression_obj.tests = tests_objs
 
         # Return the list of tests
         return regression_objs

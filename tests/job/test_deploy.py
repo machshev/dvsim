@@ -59,6 +59,10 @@ class FakeSimCfg:
         self.cov = True
         self.cov_db_dir = "path"
 
+    def wildcard_namespace(self) -> dict:
+        """Return the wildcard substitution namespace (see FlowCfg)."""
+        return self.__dict__
+
 
 class FakeBuildMode:
     """Fake BuildMode."""

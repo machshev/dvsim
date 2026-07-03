@@ -13,11 +13,11 @@ their values must be of a type that the wildcard substitution and merge
 machinery understands.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
 
 __all__ = (
@@ -47,10 +47,11 @@ class OverrideConfig(BaseModel):
 class FlowConfig(BaseModel):
     """Schema for the config keys common to all dvsim flows.
 
-    Only keys that were actually present in the hjson data should be merged
-    into a flow config, so consumers must dump with `exclude_unset=True`;
-    the defaults on this model are documentation of the effective defaults
-    set by `FlowCfg` and are never merged.
+    The field defaults serve as the config defaults for flows that hold this
+    model as their config state (see `SimCfg`). Flows that instead merge the
+    hjson data into their instance `__dict__` must dump with
+    `exclude_unset=True` so only the keys actually present in the hjson data
+    get merged.
     """
 
     model_config = ConfigDict(extra="allow")
@@ -78,11 +79,11 @@ class FlowConfig(BaseModel):
     scratch_base_path: str = ""
     """Base scratch area for the current branch."""
 
-    use_cfgs: Sequence[str | Mapping[str, Any]] = ()
+    use_cfgs: list[str | Mapping[str, Any]] = Field(default_factory=list)
     """Child config files (or inline configs) making this a primary config."""
-    exports: Sequence[Mapping[str, str | int | float | bool] | str] = ()
+    exports: list[Mapping[str, str | int | float | bool] | str] = Field(default_factory=list)
     """Variables exported to the environment of the launched jobs."""
-    overrides: Sequence[OverrideConfig] = ()
+    overrides: list[OverrideConfig] = Field(default_factory=list)
     """Config attribute overrides applied before wildcard expansion."""
 
     # Reporting / publishing.

@@ -235,7 +235,7 @@ class Deploy:
         attributes. Based on those, some additional instance attributes may
         be derived. Those are set by this method.
         """
-        self._extract_attrs(self.sim_cfg.__dict__)
+        self._extract_attrs(self.sim_cfg.wildcard_namespace())
 
         # Use the configured tool to determine the resources (licenses) that are required.
         # For now, we just assume that the tool itself is the only resource needed.
@@ -311,7 +311,7 @@ class Deploy:
         )
         self.__dict__ = find_and_substitute_wildcards(
             obj=self.__dict__,
-            wildcard_values=self.sim_cfg.__dict__,
+            wildcard_values=self.sim_cfg.wildcard_namespace(),
             ignored_wildcards=None,
             ignore_error=False,
         )
@@ -887,7 +887,7 @@ class CovMerge(Deploy):
 
         # Early lookup the cov_merge_db_dir, which is a mandatory misc
         # attribute anyway. We need it to compute additional cov db dirs.
-        self.cov_merge_db_dir = subst_wildcards("{cov_merge_db_dir}", sim_cfg.__dict__)
+        self.cov_merge_db_dir = subst_wildcards("{cov_merge_db_dir}", sim_cfg.wildcard_namespace())
 
         # Prune previous merged cov directories, keeping past 7 dbs.
         prev_cov_db_dirs = clean_odirs(odir=Path(self.cov_merge_db_dir), max_odirs=7)

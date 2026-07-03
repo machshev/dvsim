@@ -203,6 +203,23 @@ class FlowCfg(ABC):
         for key, value in hjson_data.items():
             set_target_attribute(self.flow_cfg_file, self.__dict__, key, value)
 
+    def wildcard_namespace(self) -> Mapping:
+        """Return the flat mapping used for wildcard substitution.
+
+        This combines all config and runtime state. By default this is the
+        instance `__dict__`; subclasses that keep their config in a separate
+        store must override this to merge it in.
+        """
+        return self.__dict__
+
+    def _apply_expansion(self, expanded: Mapping) -> None:
+        """Store the result of wildcard expansion of `wildcard_namespace()`.
+
+        Subclasses that keep their config in a separate store must override
+        this to route the expanded values back to the right place.
+        """
+        self.__dict__ = expanded
+
     def _expand(self) -> None:
         """Expand wildcards after merging hjson.
 
@@ -217,11 +234,14 @@ class FlowCfg(ABC):
         if self.args.dump_script is not None:
             self.run_script = "{proj_root}/" + self.args.dump_script
 
-        self.__dict__ = find_and_substitute_wildcards(
-            self.__dict__,
-            self.__dict__,
-            self.ignored_wildcards,
-            ignore_error=partial,
+        namespace = self.wildcard_namespace()
+        self._apply_expansion(
+            find_and_substitute_wildcards(
+                namespace,
+                namespace,
+                self.ignored_wildcards,
+                ignore_error=partial,
+            ),
         )
 
     def _post_init(self) -> None:
@@ -257,7 +277,7 @@ class FlowCfg(ABC):
         if type(entry) is str:
             # Treat this as a file entry. Substitute wildcards in cfg_file
             # files since we need to process them right away.
-            cfg_file = subst_wildcards(entry, self.__dict__, ignore_error=True)
+            cfg_file = subst_wildcards(entry, self.wildcard_namespace(), ignore_error=True)
             self.cfgs.append(self.create_instance(mk_config, cfg_file))
 
         elif type(entry) is dict:
