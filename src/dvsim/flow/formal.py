@@ -20,11 +20,11 @@ class FormalCfg(OneShotCfg):
 
     flow = "formal"
 
-    def __init__(self, flow_cfg_file, hjson_data, args, mk_config) -> None:
+    def __init__(self, flow_cfg_file, hjson_data, args) -> None:
         # Options set from command line
         self.batch_mode_prefix = "" if args.gui else "-batch"
 
-        super().__init__(flow_cfg_file, hjson_data, args, mk_config)
+        super().__init__(flow_cfg_file, hjson_data, args)
         self.header = [
             "name",
             "errors",
@@ -146,7 +146,7 @@ class FormalCfg(OneShotCfg):
                 summary = ["N/A", "N/A", "N/A"]
         return results_str, summary
 
-    def gen_results_summary(self):
+    def gen_results_summary(self, cfgs):
         # Gathers the aggregated results from all sub configs
         # The results_summary will only contain the passing rate and
         # percentages of the stimuli, coi, and proven coverage
@@ -159,7 +159,7 @@ class FormalCfg(OneShotCfg):
 
         colalign = ("center",) * len(self.summary_header)
         table = [self.summary_header]
-        for cfg in self.cfgs:
+        for cfg in cfgs:
             try:
                 table.append(cfg.result_summary[cfg.name])
             except KeyError as e:

@@ -5,13 +5,21 @@
 """Class describing a one-shot build configuration object."""
 
 import argparse
-from abc import abstractmethod
+import pprint
+from abc import ABC, abstractmethod
 from collections import OrderedDict
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, ClassVar
 
-from dvsim.flow.base import FlowCfg
+from dvsim.flow.bootstrap import (
+    default_rel_path,
+    expand_wildcards,
+    finalize_flow_state,
+    init_flow_state,
+    merge_hjson,
+    process_overrides,
+)
 from dvsim.job.data import CompletedJobStatus, JobSpec
 from dvsim.job.factory import (
     construct_job_cmd,
@@ -20,6 +28,7 @@ from dvsim.job.factory import (
     new_job_spec,
     resolve_wildcards,
 )
+from dvsim.job.status import JobStatus
 from dvsim.logging import log
 from dvsim.modes import BuildMode
 from dvsim.utils import rm_path
@@ -102,22 +111,27 @@ def create_compile_one_shot_job(build_mode: BuildMode, sim_cfg: "OneShotCfg") ->
     )
 
 
-class OneShotCfg(FlowCfg):
+class OneShotCfg(ABC):
     """Simple one-shot build flow for non-simulation targets like linting, synthesis and FPV."""
 
+    # The hjson 'flow' key that selects this flow config; set in subclasses.
+    flow: ClassVar[str | None] = None
+
     ignored_wildcards: ClassVar[list[str]] = [
-        *FlowCfg.ignored_wildcards,
         "build_mode",
         "index",
         "test",
     ]
+
+    def __str__(self) -> str:
+        """Get string representation of the flow config."""
+        return pprint.pformat(self.__dict__)
 
     def __init__(
         self,
         flow_cfg_file: str,
         hjson_data: Mapping[str, Any],
         args: argparse.Namespace,
-        mk_config: Callable[[str], FlowCfg],
     ) -> None:
         """Initialise OneShotCfg object.
 
@@ -125,7 +139,6 @@ class OneShotCfg(FlowCfg):
           flow_cfg_file: Path to hjson cfg that was loaded.
           hjson_data: The parsed hjson from flow_cfg_file.
           args: Arguments passed to dvsim
-          mk_config: A factory method to allow multi-layer builds.
 
         """
         # Options set from command line
@@ -176,17 +189,25 @@ class OneShotCfg(FlowCfg):
         self.deploy = []
         self.cov = args.cov
 
-        super().__init__(flow_cfg_file, hjson_data, args, mk_config)
+        init_flow_state(self, flow_cfg_file, args)
 
-    def _merge_hjson(self, hjson_data: Mapping[str, Any]) -> None:
         # If build_unique is set, then add current timestamp to uniquify it
         if self.build_unique:
             self.build_dir += "_" + self.timestamp
 
-        super()._merge_hjson(hjson_data)
+        # Merge in the values from the loaded hjson file.
+        merge_hjson(self, hjson_data)
 
-    def _expand(self) -> None:
-        super()._expand()
+        # A primary cfg simply groups child cfgs (see dvsim.flow.group).
+        self.is_primary_cfg = "use_cfgs" in hjson_data
+
+        default_rel_path(self)
+
+        # Process overrides before substituting wildcards.
+        process_overrides(self)
+
+        # Expand wildcards.
+        expand_wildcards(self)
 
         # Stuff below only pertains to individual cfg (not primary cfg).
         if not self.is_primary_cfg and (not self.select_cfgs or self.name in self.select_cfgs):
@@ -201,8 +222,31 @@ class OneShotCfg(FlowCfg):
             # tests and regressions, only if not a primary cfg obj
             self._create_objects()
 
+        finalize_flow_state(self)
+
+    def wildcard_namespace(self) -> Mapping:
+        """Return the flat mapping used for wildcard substitution.
+
+        This combines all config and runtime state, which for this flow is
+        the instance `__dict__`.
+        """
+        return self.__dict__
+
+    def apply_expansion(self, expanded: Mapping) -> None:
+        """Store the result of wildcard expansion of `wildcard_namespace()`."""
+        self.__dict__ = expanded
+
+    def has_errors(self) -> bool:
+        """Return error state."""
+        return self.errors_seen
+
+    def fake_policy(self, _job: JobSpec) -> JobStatus | None:
+        """Tell the fake backend how to fake a job. No opinion by default."""
+        return None
+
     # Purge the output directories. This operates on self.
-    def _purge(self) -> None:
+    def purge(self) -> None:
+        """Purge the scratch area in preparation for the new run."""
         if not self.scratch_path:
             raise RuntimeError("Scratch path is '', so cannot purge.")
 
@@ -231,7 +275,8 @@ class OneShotCfg(FlowCfg):
         for build_mode in self.build_modes:
             build_mode.build_opts.extend(self.build_opts)
 
-    def _print_list(self) -> None:
+    def print_list(self) -> None:
+        """Print the list of available items that can be kicked off."""
         for list_item in self.list_items:
             log.info("---- List of %s in %s ----", list_item, self.name)
             if hasattr(self, list_item):
@@ -241,7 +286,7 @@ class OneShotCfg(FlowCfg):
             else:
                 log.error("Item %s does not exist!", list_item)
 
-    def _create_deploy_objects(self) -> None:
+    def create_deploy_objects(self) -> None:
         """Create job specs from build modes."""
         builds = [create_compile_one_shot_job(build, self) for build in self.build_modes]
 
@@ -253,17 +298,22 @@ class OneShotCfg(FlowCfg):
         """Generate results for this config."""
 
     @abstractmethod
-    def gen_results_summary(self) -> str:
+    def gen_results_summary(self, cfgs: Sequence["OneShotCfg"]) -> str:
         """Gathers the aggregated results from all sub configs."""
 
-    def gen_results(self, results: Sequence[CompletedJobStatus]) -> None:
+    def gen_results(
+        self,
+        results: Sequence[CompletedJobStatus],
+        cfgs: Sequence["OneShotCfg"],
+    ) -> None:
         """Generate flow results.
 
         Args:
             results: completed job status objects.
+            cfgs: the flow configs that were run (see dvsim.flow.group).
 
         """
-        for item in self.cfgs:
+        for item in cfgs:
             project = item.name
 
             # Children of this configuration should all be OneShotCfg objects
@@ -309,5 +359,5 @@ class OneShotCfg(FlowCfg):
             self.errors_seen |= item.errors_seen
 
         if self.is_primary_cfg:
-            self.gen_results_summary()
+            self.gen_results_summary(cfgs)
             # TODO: Write a combined HTML report to self.results_html_name

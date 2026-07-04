@@ -20,12 +20,12 @@ class SynCfg(OneShotCfg):
 
     flow = "syn"
 
-    def __init__(self, flow_cfg_file, hjson_data, args, mk_config) -> None:
-        super().__init__(flow_cfg_file, hjson_data, args, mk_config)
+    def __init__(self, flow_cfg_file, hjson_data, args) -> None:
+        super().__init__(flow_cfg_file, hjson_data, args)
         # Set the title for synthesis results.
         self.results_title = self.name.upper() + " Synthesis Results"
 
-    def gen_results_summary(self):
+    def gen_results_summary(self, cfgs):
         """Gathers the aggregated results from all sub configs."""
         # Generate results table for runs.
         log.info("Create summary of synthesis results")

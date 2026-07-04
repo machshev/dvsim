@@ -12,7 +12,7 @@ class CdcCfg(LintCfg):
 
     flow = "cdc"
 
-    def __init__(self, flow_cfg_file, hjson_data, args, mk_config) -> None:
-        super().__init__(flow_cfg_file, hjson_data, args, mk_config)
+    def __init__(self, flow_cfg_file, hjson_data, args) -> None:
+        super().__init__(flow_cfg_file, hjson_data, args)
 
         self.results_title = f"{self.name.upper()} CDC Results"

@@ -5,6 +5,7 @@
 """Class describing simulation configuration object."""
 
 import fnmatch
+import pprint
 import random
 import shlex
 import shutil
@@ -19,7 +20,12 @@ from typing import ClassVar
 import hjson
 from pydantic import ValidationError
 
-from dvsim.flow.base import FlowCfg
+from dvsim.flow.bootstrap import (
+    default_rel_path,
+    expand_wildcards,
+    finalize_flow_state,
+    init_flow_state,
+)
 from dvsim.job.data import CompletedJobStatus, JobSpec
 from dvsim.job.factory import (
     construct_job_cmd,
@@ -717,7 +723,7 @@ def create_cov_vplan_job(report_job: JobSpec, sim_cfg: "SimCfg") -> JobSpec:
     )
 
 
-class SimCfg(FlowCfg):
+class SimCfg:
     """Simulation configuration object.
 
     A simulation configuration class holds key information required for building
@@ -748,7 +754,11 @@ class SimCfg(FlowCfg):
         "sw_build_opts",
     ]
 
-    def __init__(self, flow_cfg_file, hjson_data, args, mk_config) -> None:
+    def __str__(self) -> str:
+        """Get string representation of the flow config."""
+        return pprint.pformat(self.__dict__)
+
+    def __init__(self, flow_cfg_file, hjson_data, args) -> None:
         # Options set from command line
         self.build_unique = args.build_unique
         self.build_seed = args.build_seed
@@ -812,7 +822,24 @@ class SimCfg(FlowCfg):
 
         self.results_summary = OrderedDict()
 
-        super().__init__(flow_cfg_file, hjson_data, args, mk_config)
+        init_flow_state(self, flow_cfg_file, args)
+
+        # Merge in the values from the loaded hjson file (into the typed
+        # config model - see _merge_hjson).
+        self._merge_hjson(hjson_data)
+
+        # A primary cfg simply groups child cfgs (see dvsim.flow.group).
+        self.is_primary_cfg = "use_cfgs" in hjson_data
+
+        default_rel_path(self)
+
+        # Process overrides before substituting wildcards.
+        self._process_overrides()
+
+        # Expand wildcards.
+        self._expand()
+
+        finalize_flow_state(self)
 
     def __getattr__(self, name: str):
         """Fall back to the config model for attribute reads.
@@ -851,7 +878,7 @@ class SimCfg(FlowCfg):
             log.error(str(err))
             sys.exit(1)
 
-        # Drop the instance defaults set by FlowCfg.__init__ for keys the
+        # Drop the instance defaults set by init_flow_state for keys the
         # config model manages - they would otherwise shadow the config.
         for key in [k for k in self.__dict__ if self._is_config_key(k)]:
             del self.__dict__[key]
@@ -914,7 +941,7 @@ class SimCfg(FlowCfg):
         namespace.update(self.__dict__)
         return namespace
 
-    def _apply_expansion(self, expanded: Mapping) -> None:
+    def apply_expansion(self, expanded: Mapping) -> None:
         """Split the expanded namespace back into config and runtime state.
 
         Keys that live in the instance `__dict__` (runtime state, including
@@ -953,7 +980,7 @@ class SimCfg(FlowCfg):
         if self.args.verbosity is not None:
             self.verbosity = self.args.verbosity
 
-        super()._expand()
+        expand_wildcards(self)
 
         if self.variant:
             self.variant_name = self.name + "/" + self.variant
@@ -1025,7 +1052,8 @@ class SimCfg(FlowCfg):
         return self.waves
 
     # Purge the output directories. This operates on self.
-    def _purge(self) -> None:
+    def purge(self) -> None:
+        """Purge the scratch area in preparation for the new run."""
         assert self.scratch_path
         log.info("Purging scratch path %s", self.scratch_path)
         rm_path(self.scratch_path)
@@ -1090,7 +1118,8 @@ class SimCfg(FlowCfg):
         # Create regressions
         self.regressions = Regression.create_regressions(self.regressions, self, self.tests)
 
-    def _print_list(self) -> None:
+    def print_list(self) -> None:
+        """Print the list of available items that can be kicked off."""
         for list_item in self.list_items:
             log.info("---- List of %s in %s ----", list_item, self.variant_name)
             items = getattr(self, list_item, None)
@@ -1221,7 +1250,7 @@ class SimCfg(FlowCfg):
         # which we sorted it.
         return [run for _, run in tagged]
 
-    def _create_deploy_objects(self) -> None:
+    def create_deploy_objects(self) -> None:
         """Create deploy objects from the build and run lists."""
         # Create the build and run list first
         self._create_build_and_run_list()
@@ -1325,7 +1354,7 @@ class SimCfg(FlowCfg):
                     self.cov_vplan_job = create_cov_vplan_job(self.cov_report_job, self)
                     self.deploy.append(self.cov_vplan_job)
 
-    def _cov_analyze(self) -> None:
+    def cov_analyze(self) -> None:
         """Open GUI tool for coverage analysis.
 
         Use the last regression coverage data to open up the GUI tool to analyze
@@ -1333,12 +1362,7 @@ class SimCfg(FlowCfg):
         """
         self.deploy = [create_cov_analyze_job(self)]
 
-    def cov_analyze(self) -> None:
-        """Public facing API for analyzing coverage."""
-        for item in self.cfgs:
-            item._cov_analyze()
-
-    def _cov_unr(self) -> None:
+    def cov_unr(self) -> None:
         """Generate unreachable coverage exclusions.
 
         Use the last regression coverage data to generate unreachable coverage
@@ -1351,16 +1375,20 @@ class SimCfg(FlowCfg):
 
         self.deploy = [create_cov_unr_job(self)]
 
-    def cov_unr(self) -> None:
-        """Public facing API for analyzing coverage."""
-        for item in self.cfgs:
-            item._cov_unr()
+    def has_errors(self) -> bool:
+        """Return error state."""
+        return self.errors_seen
 
-    def gen_results(self, results: Sequence[CompletedJobStatus]) -> None:
+    def gen_results(
+        self,
+        results: Sequence[CompletedJobStatus],
+        cfgs: Sequence["SimCfg"],
+    ) -> None:
         """Generate flow results.
 
         Args:
             results: completed job status objects.
+            cfgs: the flow configs that were run (see dvsim.flow.group).
 
         """
         repo_root = Path(self.proj_root)
@@ -1378,7 +1406,7 @@ class SimCfg(FlowCfg):
         all_flow_results: Mapping[str, SimFlowResults] = {}
         flow_summaries: Mapping[str, SimFlowSummary] = {}
 
-        for item in self.cfgs:
+        for item in cfgs:
             item_results = [
                 res
                 for res in results
@@ -1621,11 +1649,12 @@ class SimCfg(FlowCfg):
             percent=100.0 * total_passed / total_runs if total_runs else 0.0,
         )
 
-    def _fake_policy(self, job: JobSpec) -> JobStatus:
+    def fake_policy(self, job: JobSpec) -> JobStatus | None:
         """Tell the fake backend how to fake jobs for this flow.
 
         Currently randomly returns 50% pass / 50% fail for RunTest jobs, and fakes injecting
-        randomized 0-100% coverage results into the cfg's coverage report results.
+        randomized 0-100% coverage results into the cfg's coverage report results. Returns
+        None for jobs this cfg has no opinion on (see dvsim.flow.group).
         """
         if job.job_type == "RunTest":
             return random.choice((JobStatus.PASSED, JobStatus.FAILED))
@@ -1633,29 +1662,29 @@ class SimCfg(FlowCfg):
         # TODO: hack, try to remove. Annotate the cfg with some faked
         # coverage results. Just allows us to fake coverage results for now
         # without needing to create a fake result file or significantly refactor.
-        if job.job_type == "CovReport":
-            for item in self.cfgs:
-                if item.cov_report_job and item.cov_report_job.full_name == job.full_name:
-                    fake_keys = [
-                        "score",
-                        "assert",
-                        "group",
-                        "block",
-                        "line",
-                        "branch",
-                        "cond",
-                        "toggle",
-                        "fsm",
-                    ]
-                    # Approximate the correct keys; in reality some jobs might not
-                    # have certain types of coverage (e.g. FSM) depending on the RTL
-                    if job.tool == "vcs":
-                        fake_keys.remove("block")
-                    elif job.tool == "xcelium":
-                        fake_keys.remove("cond")
-                    item.cov_report_results = {
-                        k: f"{random.random() * 100:.2f} %" for k in fake_keys
-                    }
-                    break
+        if (
+            job.job_type == "CovReport"
+            and self.cov_report_job
+            and self.cov_report_job.full_name == job.full_name
+        ):
+            fake_keys = [
+                "score",
+                "assert",
+                "group",
+                "block",
+                "line",
+                "branch",
+                "cond",
+                "toggle",
+                "fsm",
+            ]
+            # Approximate the correct keys; in reality some jobs might not
+            # have certain types of coverage (e.g. FSM) depending on the RTL
+            if job.tool == "vcs":
+                fake_keys.remove("block")
+            elif job.tool == "xcelium":
+                fake_keys.remove("cond")
+            self.cov_report_results = {k: f"{random.random() * 100:.2f} %" for k in fake_keys}
+            return JobStatus.PASSED
 
-        return JobStatus.PASSED
+        return None

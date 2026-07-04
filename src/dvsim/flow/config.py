@@ -5,7 +5,7 @@
 """Pydantic models describing the flow configuration schema.
 
 These models validate the merged hjson data produced by
-`dvsim.flow.hjson.load_hjson` before it is merged into a `FlowCfg`. The
+`dvsim.flow.hjson.load_hjson` before it is merged into a flow config. The
 config namespace is deliberately open: projects define arbitrary additional
 keys which are used as wildcard substitution variables (e.g. `{dv_root}` or
 `{tl_aw}` in the OpenTitan configs). Unknown keys are therefore allowed, but
@@ -33,7 +33,7 @@ _EXTRA_VALUE_TYPES = (str, int, float, bool, Path, list, dict)
 class OverrideConfig(BaseModel):
     """A single entry of the `overrides` list.
 
-    See `FlowCfg._process_overrides`, which requires exactly these two keys.
+    See `dvsim.flow.bootstrap.process_overrides`, which requires exactly these two keys.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -57,7 +57,7 @@ class FlowConfig(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     flow: str
-    """The flow this config drives (e.g. "sim"). Selects the FlowCfg subclass."""
+    """The flow this config drives (e.g. "sim"). Selects the flow config class."""
 
     name: str = ""
     """Name of the DUT / config."""

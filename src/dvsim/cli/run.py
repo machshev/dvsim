@@ -31,7 +31,7 @@ import textwrap
 from importlib.metadata import version
 from pathlib import Path
 
-from dvsim.flow.factory import make_cfg
+from dvsim.flow.factory import make_flow_group
 from dvsim.instrumentation.factory import InstrumentationFactory
 from dvsim.instrumentation.runtime import set_instrumentation
 from dvsim.launcher.base import Launcher
@@ -991,39 +991,41 @@ def main(argv: list[str] | None = None) -> None:
 
     # Build infrastructure from hjson file and create the list of items to
     # be deployed.
-    cfg = make_cfg(args.cfg, args, proj_root)
+    flow_group = make_flow_group(args.cfg, args, proj_root)
 
     # List items available for run if --list switch is passed, and exit.
     if args.list is not None:
-        cfg.print_list()
+        flow_group.print_list()
         sys.exit(0)
 
     # Purge the scratch path if --purge option is set.
     if args.purge:
-        cfg.purge()
+        flow_group.purge()
 
     # If --cov-unr is passed, run UNR to generate report for unreachable
     # exclusion file.
     if args.cov_unr:
-        cfg.cov_unr()
-        cfg.deploy_objects()
+        for cfg in flow_group.cfgs:
+            cfg.cov_unr()
+        flow_group.deploy_objects()
         sys.exit(0)
 
     # In simulation mode: if --cov-analyze switch is passed, then run the GUI
     # tool.
     if args.cov_analyze:
-        cfg.cov_analyze()
-        cfg.deploy_objects()
+        for cfg in flow_group.cfgs:
+            cfg.cov_analyze()
+        flow_group.deploy_objects()
         sys.exit(0)
 
     # Deploy the builds and runs
     if args.items:
         # Create deploy objects.
-        cfg.create_deploy_objects()
-        results = cfg.deploy_objects()
+        flow_group.create_deploy_objects()
+        results = flow_group.deploy_objects()
 
         # Generate results.
-        cfg.gen_results(results)
+        flow_group.gen_results(results)
 
         # Now that we have printed the results from the scheduler, we close the
         # status printer, to ensure the status remains relevant in the UI context
@@ -1037,7 +1039,7 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(1)
 
     # Exit with non-zero status if there were errors or failures.
-    if cfg.has_errors():
+    if flow_group.has_errors():
         log.error("Errors were encountered in this run.")
         sys.exit(1)
 

@@ -12,9 +12,9 @@ class RdcCfg(LintCfg):
 
     flow = "rdc"
 
-    def __init__(self, flow_cfg_file, hjson_data, args, mk_config) -> None:
+    def __init__(self, flow_cfg_file, hjson_data, args) -> None:
         self.waves = args.waves or ""
 
-        super().__init__(flow_cfg_file, hjson_data, args, mk_config)
+        super().__init__(flow_cfg_file, hjson_data, args)
 
         self.results_title = f"{self.name.upper()} RDC Results"

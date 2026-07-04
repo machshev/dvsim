@@ -21,7 +21,7 @@ class LintCfg(OneShotCfg):
 
     flow = "lint"
 
-    def __init__(self, flow_cfg_file, hjson_data, args, mk_config) -> None:
+    def __init__(self, flow_cfg_file, hjson_data, args) -> None:
         # TODO: check whether this can be replaced with the subflow concept.
         # This determines whether the flow is for a style lint run.
         # Format: bool
@@ -40,7 +40,7 @@ class LintCfg(OneShotCfg):
         # Format: str
         self.additional_fusesoc_argument = ""
 
-        super().__init__(flow_cfg_file, hjson_data, args, mk_config)
+        super().__init__(flow_cfg_file, hjson_data, args)
 
         if self.is_style_lint == "":
             self.is_style_lint = False
@@ -53,7 +53,7 @@ class LintCfg(OneShotCfg):
         else:
             self.results_title = f"{self.name.upper()} Lint Results"
 
-    def gen_results_summary(self):
+    def gen_results_summary(self, cfgs):
         """Gathers the aggregated results from all sub configs."""
         # Generate results table for runs.
         log.info("Create summary of lint results")
@@ -67,7 +67,7 @@ class LintCfg(OneShotCfg):
 
         # Aggregate with all summaries
         self.totals = MsgBuckets(self.message_buckets)
-        for cfg in self.cfgs:
+        for cfg in cfgs:
             self.totals += cfg.result_summary
 
         # Construct Header
@@ -77,7 +77,7 @@ class LintCfg(OneShotCfg):
         table = [header]
 
         keys = self.totals.get_keys(self.report_severities)
-        for cfg in self.cfgs:
+        for cfg in cfgs:
             link_text = self.name.upper()
             relative_link = Path(self.results_dir) / self.results_page
 

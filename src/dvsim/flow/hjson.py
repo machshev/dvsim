@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-"""A wrapper for loading hjson files as used by dvsim's FlowCfg."""
+"""A wrapper for loading hjson files as used by the dvsim flow configs."""
 
 from dvsim.utils import parse_hjson, subst_wildcards
 
