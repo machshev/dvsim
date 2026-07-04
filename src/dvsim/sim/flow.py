@@ -6,6 +6,8 @@
 
 import fnmatch
 import random
+import shlex
+import shutil
 import sys
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping, Sequence
@@ -14,18 +16,18 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import ClassVar
 
+import hjson
 from pydantic import ValidationError
 
 from dvsim.flow.base import FlowCfg
 from dvsim.job.data import CompletedJobStatus, JobSpec
-from dvsim.job.deploy import (
-    CompileSim,
-    CovAnalyze,
-    CovMerge,
-    CovReport,
-    CovUnr,
-    CovVPlan,
-    RunTest,
+from dvsim.job.factory import (
+    construct_job_cmd,
+    is_equivalent_job_spec,
+    job_full_name,
+    job_namespace,
+    new_job_spec,
+    resolve_wildcards,
 )
 from dvsim.job.status import JobStatus
 from dvsim.logging import log
@@ -47,7 +49,7 @@ from dvsim.sim_results import BucketedFailures, SimResults
 from dvsim.test import Test
 from dvsim.testplan import Testplan
 from dvsim.tool.utils import get_sim_tool_plugin
-from dvsim.utils import TS_FORMAT, rm_path
+from dvsim.utils import TS_FORMAT, clean_odirs, rm_path, subst_wildcards
 from dvsim.utils.fs import relative_to
 from dvsim.utils.git import git_https_url_with_commit
 
@@ -56,6 +58,663 @@ __all__ = ("SimCfg",)
 # This affects the bucketizer failure report.
 _MAX_UNIQUE_TESTS = 5
 _MAX_TEST_RESEEDS = 2
+
+
+# Custom seeds for tests, registered from the command line (--seeds). These
+# are consumed first. If --fixed-seed <val> is also passed, the subsequent
+# tests (once the custom seeds are consumed) will be run with the fixed seed.
+_test_seeds: list[int] = []
+_fixed_seed: int | None = None
+
+
+def set_test_seeds(seeds: list[int] | None, fixed_seed: int | None) -> None:
+    """Register the test seeds passed on the command line."""
+    global _test_seeds, _fixed_seed  # noqa: PLW0603
+    _test_seeds = seeds if seeds is not None else []
+    _fixed_seed = fixed_seed
+
+
+def _get_test_seed() -> int:
+    """Get the test random seed."""
+    if not _test_seeds:
+        if _fixed_seed is not None:
+            return _fixed_seed
+        _test_seeds.extend(random.getrandbits(256) for _ in range(1000))
+    return _test_seeds.pop(0)
+
+
+def _apply_tool_plugin(ns: dict, sim_cfg: "SimCfg", target: str) -> None:
+    """Mutate a job's wildcard namespace based on any tool plugins."""
+    try:
+        plugin = get_sim_tool_plugin(sim_cfg.tool)
+    except NotImplementedError as e:
+        log.debug("Could not find sim tool for %s: %s", sim_cfg.tool, str(e))
+        return
+
+    plugin.set_additional_attrs(ns, sim_cfg, target)
+
+
+def create_compile_sim_job(build_mode: BuildMode, sim_cfg: "SimCfg") -> JobSpec:
+    """Create a job spec for building the simulation executable.
+
+    Args:
+        build_mode: build mode instance
+        sim_cfg: simulation config object
+
+    Returns:
+        the job spec for the build job.
+
+    """
+    target = "build"
+    cmd_attrs = (
+        # tool srcs
+        "proj_root",
+        # Flist gen
+        "sv_flist_gen_cmd",
+        "sv_flist_gen_dir",
+        "sv_flist_gen_opts",
+        # Build
+        "pre_build_cmds",
+        "build_cmd",
+        "build_dir",
+        "build_opts",
+        "post_build_cmds",
+        "post_build_opts",
+    )
+
+    name = build_mode.name
+    ns = job_namespace(
+        sim_cfg,
+        attrs=(
+            *cmd_attrs,
+            "build_fail_patterns",
+            "build_pass_patterns",
+            "build_timeout_mins",
+            "cov_db_dir",
+        ),
+        mode_dict=build_mode.__dict__,
+        # Dont run the compile job in GUI mode.
+        gui=False,
+        # 'build_mode' is used as a substitution variable in the HJson.
+        build_mode=name,
+        name=name,
+        seed=sim_cfg.build_seed,
+        qual_name=name,
+        full_name=job_full_name(sim_cfg, name),
+        job_name=f"{Path(sim_cfg.scratch_path).name}_{target}_{name}",
+        odir="{build_dir}",
+    )
+
+    if sim_cfg.args.build_timeout_mins is not None:
+        ns["build_timeout_mins"] = sim_cfg.args.build_timeout_mins
+
+    _apply_tool_plugin(ns, sim_cfg, target)
+
+    timeout_mins = ns["build_timeout_mins"]
+    if timeout_mins:
+        log.debug('Timeout for job "%s" is %d minutes.', name, timeout_mins)
+
+    cov_db_dir = Path(resolve_wildcards(ns["cov_db_dir"], ns))
+
+    def pre_launch() -> None:
+        """Perform pre-launch tasks."""
+        # Delete old coverage database directories before building again. We
+        # need to do this because the build directory is not 'renewed'.
+        rm_path(cov_db_dir)
+
+    return new_job_spec(
+        sim_cfg,
+        job_type="CompileSim",
+        target=target,
+        name=name,
+        qual_name=name,
+        cmd=construct_job_cmd(
+            makefile=resolve_wildcards(ns["flow_makefile"], ns),
+            target=target,
+            dry_run=ns["dry_run"],
+            cmd_attrs={attr: resolve_wildcards(ns[attr], ns) for attr in cmd_attrs},
+            cmds_list_vars=("pre_build_cmds", "post_build_cmds"),
+        ),
+        odir=resolve_wildcards(ns["odir"], ns),
+        gui=False,
+        dry_run=ns["dry_run"],
+        exports=resolve_wildcards(ns["exports"], ns),
+        seed=sim_cfg.build_seed,
+        weight=5,
+        # Limit build jobs to 60 minutes if the timeout is not set.
+        timeout_mins=timeout_mins if timeout_mins is not None else 60,
+        pass_patterns=resolve_wildcards(ns["build_pass_patterns"], ns),
+        fail_patterns=resolve_wildcards(ns["build_fail_patterns"], ns),
+        pre_launch=pre_launch,
+    )
+
+
+def create_run_test_job(
+    index: int,
+    test: Test,
+    build_job: JobSpec,
+    sim_cfg: "SimCfg",
+) -> JobSpec:
+    """Create a job spec for running a test. There is one of these per seed.
+
+    Args:
+        index: reseed index of this run.
+        test: the test to run.
+        build_job: the build job this run depends on.
+        sim_cfg: simulation config object
+
+    Returns:
+        the job spec for the run job.
+
+    """
+    target = "run"
+    seed = _get_test_seed()
+    log.debug(
+        "Creating run job for %s test %s no. %d with seed %s",
+        sim_cfg.name,
+        getattr(test, "name", "[unknown]"),
+        index,
+        seed,
+    )
+
+    extracted_cmd_attrs = (
+        # tool srcs
+        "proj_root",
+        "uvm_test",
+        "uvm_test_seq",
+        "sw_images",
+        "sw_build_device",
+        "sw_build_cmd",
+        "sw_build_opts",
+        "run_dir",
+        "pre_run_cmds",
+        "run_cmd",
+        "run_opts",
+        "post_run_cmds",
+    )
+    # 'build_seed' and 'seed' are set directly below, but are also make
+    # variables on the run command.
+    cmd_attrs = (*extracted_cmd_attrs, "build_seed", "seed")
+
+    build_mode = test.build_mode.name
+    qual_name = "{run_dir_name}." + str(seed)
+
+    ns = job_namespace(
+        sim_cfg,
+        attrs=(
+            *extracted_cmd_attrs,
+            "cov_db_dir",
+            "cov_db_test_dir",
+            "run_dir_name",
+            "run_fail_patterns",
+            "run_pass_patterns",
+            "run_timeout_mins",
+            "run_timeout_multiplier",
+        ),
+        mode_dict=test.__dict__,
+        index=index,
+        build_seed=sim_cfg.build_seed,
+        seed=seed,
+        # Systemverilog accepts seeds with a maximum size of 32 bits.
+        svseed=int(seed) & 0xFFFFFFFF,
+        # 'test' is used as a substitution variable in the HJson.
+        test=test.name,
+        name=test.name,
+        build_mode=build_mode,
+        qual_name=qual_name,
+        full_name=job_full_name(sim_cfg, qual_name),
+        job_name=f"{Path(sim_cfg.scratch_path).name}_{target}_{build_mode}",
+        odir="{run_dir}",
+    )
+
+    if sim_cfg.args.run_timeout_mins is not None:
+        ns["run_timeout_mins"] = sim_cfg.args.run_timeout_mins
+
+    if sim_cfg.args.run_timeout_multiplier is not None:
+        ns["run_timeout_multiplier"] = sim_cfg.args.run_timeout_multiplier
+
+    if ns["run_timeout_mins"] and ns["run_timeout_multiplier"]:
+        ns["run_timeout_mins"] = int(ns["run_timeout_mins"] * ns["run_timeout_multiplier"])
+
+    _apply_tool_plugin(ns, sim_cfg, target)
+
+    qual_name = resolve_wildcards(qual_name, ns)
+    full_name = job_full_name(sim_cfg, qual_name)
+
+    if ns["run_timeout_multiplier"]:
+        log.debug(
+            'Timeout multiplier for job "%s" is %f.',
+            full_name,
+            ns["run_timeout_multiplier"],
+        )
+
+    if ns["run_timeout_mins"]:
+        log.debug('Timeout for job "%s" is %d minutes.', full_name, ns["run_timeout_mins"])
+
+    # We did something wrong if build_mode is not the same as the build_job
+    # arg's name.
+    if build_mode != build_job.name:
+        msg = (
+            f"Created a build job with name {build_job.name}, when we "
+            f"expected the name to be {build_mode}."
+        )
+        raise AssertionError(msg)
+
+    cov_db_test_dir = Path(resolve_wildcards(ns["cov_db_test_dir"], ns))
+
+    def post_finish(status: JobStatus) -> None:
+        """Perform tidy up tasks."""
+        if status != JobStatus.PASSED:
+            # Delete the coverage data if available.
+            rm_path(cov_db_test_dir)
+
+    return new_job_spec(
+        sim_cfg,
+        job_type="RunTest",
+        target=target,
+        name=test.name,
+        qual_name=qual_name,
+        cmd=construct_job_cmd(
+            makefile=resolve_wildcards(ns["flow_makefile"], ns),
+            target=target,
+            dry_run=ns["dry_run"],
+            cmd_attrs={attr: resolve_wildcards(ns[attr], ns) for attr in cmd_attrs},
+            cmds_list_vars=("pre_run_cmds", "post_run_cmds"),
+        ),
+        odir=resolve_wildcards(ns["odir"], ns),
+        gui=sim_cfg.gui,
+        dry_run=ns["dry_run"],
+        exports=resolve_wildcards(ns["exports"], ns),
+        seed=seed,
+        dependencies=([build_job] if build_job is not None and not sim_cfg.run_only else []),
+        # Limit run jobs to 60 minutes if the timeout is not set.
+        timeout_mins=(ns["run_timeout_mins"] if ns["run_timeout_mins"] is not None else 60),
+        # When running a test, we should always renew the output directory.
+        renew_odir=True,
+        # In GUI mode, the log file is not updated; hence, nothing to check.
+        pass_patterns=([] if sim_cfg.gui else resolve_wildcards(ns["run_pass_patterns"], ns)),
+        fail_patterns=([] if sim_cfg.gui else resolve_wildcards(ns["run_fail_patterns"], ns)),
+        post_finish=post_finish,
+    )
+
+
+def create_cov_merge_job(
+    run_jobs: Sequence[JobSpec],
+    run_build_modes: Sequence[str],
+    sim_cfg: "SimCfg",
+) -> JobSpec:
+    """Create a job spec for merging the coverage databases of the run jobs.
+
+    Args:
+        run_jobs: the run jobs whose coverage is to be merged.
+        run_build_modes: the build mode name of each run job (in the same
+            order as run_jobs).
+        sim_cfg: simulation config object
+
+    Returns:
+        the job spec for the coverage merge job.
+
+    """
+    target = "cov_merge"
+    cfg_namespace = sim_cfg.wildcard_namespace()
+
+    # Construct the cov_db_dirs right away from the run jobs. This is a
+    # special variable used in the HJson. The coverage associated with
+    # the primary build mode needs to be first in the list.
+    cov_db_dirs = []
+    for build_mode in run_build_modes:
+        cov_db_dir = subst_wildcards(
+            "{cov_db_dir}",
+            {**cfg_namespace, "build_mode": build_mode},
+        )
+        if cov_db_dir not in cov_db_dirs:
+            if sim_cfg.primary_build_mode == build_mode:
+                cov_db_dirs.insert(0, cov_db_dir)
+            else:
+                cov_db_dirs.append(cov_db_dir)
+
+    # Sort the cov_db_dirs except for the first directory.
+    if len(cov_db_dirs) > 1:
+        cov_db_dirs = [cov_db_dirs[0], *sorted(cov_db_dirs[1:])]
+
+    # Early lookup the cov_merge_db_dir, which is a mandatory misc
+    # attribute anyway. We need it to compute additional cov db dirs.
+    cov_merge_db_dir = subst_wildcards("{cov_merge_db_dir}", cfg_namespace)
+
+    # Prune previous merged cov directories, keeping past 7 dbs.
+    prev_cov_db_dirs = clean_odirs(odir=Path(cov_merge_db_dir), max_odirs=7)
+
+    # If the --cov-merge-previous command line switch is passed, then
+    # merge coverage with the previous runs.
+    if sim_cfg.cov_merge_previous:
+        cov_db_dirs += [str(item) for item in prev_cov_db_dirs]
+
+    cmd_attrs = ("cov_merge_cmd", "cov_merge_opts")
+    ns = job_namespace(
+        sim_cfg,
+        attrs=(*cmd_attrs, "cov_merge_dir", "cov_merge_db_dir"),
+        cov_db_dirs=cov_db_dirs,
+        qual_name=target,
+        full_name=job_full_name(sim_cfg, target),
+        job_name=f"{Path(sim_cfg.scratch_path).name}_{target}",
+        # For merging coverage db, the precise output dir is set in the HJson.
+        odir="{cov_merge_db_dir}",
+    )
+
+    _apply_tool_plugin(ns, sim_cfg, target)
+
+    return new_job_spec(
+        sim_cfg,
+        job_type="CovMerge",
+        target=target,
+        name=ns["name"],
+        qual_name=target,
+        cmd=construct_job_cmd(
+            makefile=resolve_wildcards(ns["flow_makefile"], ns),
+            target=target,
+            dry_run=ns["dry_run"],
+            cmd_attrs={attr: resolve_wildcards(ns[attr], ns) for attr in cmd_attrs},
+        ),
+        odir=resolve_wildcards(ns["odir"], ns),
+        gui=sim_cfg.gui,
+        dry_run=ns["dry_run"],
+        exports=resolve_wildcards(ns["exports"], ns),
+        weight=10,
+        dependencies=run_jobs,
+        # Run coverage merge even if just one test passes.
+        needs_all_dependencies_passing=False,
+        # Append cov_db_dirs to the list of exports.
+        extra_exports={"cov_db_dirs": shlex.quote(" ".join(cov_db_dirs))},
+    )
+
+
+def create_cov_report_job(merge_job: JobSpec, sim_cfg: "SimCfg") -> JobSpec:
+    """Create a job spec for generating a coverage report.
+
+    Args:
+        merge_job: the coverage merge job this one depends on.
+        sim_cfg: simulation config object
+
+    Returns:
+        the job spec for the coverage report job.
+
+    """
+    target = "cov_report"
+    cmd_attrs = ("cov_report_cmd", "cov_report_opts")
+
+    ns = job_namespace(
+        sim_cfg,
+        attrs=(*cmd_attrs, "cov_report_dir", "cov_merge_db_dir", "cov_report_txt"),
+        qual_name=target,
+        full_name=job_full_name(sim_cfg, target),
+        job_name=f"{Path(sim_cfg.scratch_path).name}_{target}",
+        odir="{cov_report_dir}",
+    )
+
+    _apply_tool_plugin(ns, sim_cfg, target)
+
+    cov_report_txt = Path(resolve_wildcards(ns["cov_report_txt"], ns))
+    dry_run = ns["dry_run"]
+
+    def post_finish(status: JobStatus) -> None:
+        """Extract the coverage results summary for the dashboard.
+
+        The results are stored on the cfg (see SimCfg.cov_report_results),
+        which is where the report generation looks for them.
+
+        If the extraction fails, an appropriate exception is raised, which must
+        be caught by the caller to mark the job as a failure.
+        """
+        if dry_run or status != JobStatus.PASSED or not cov_report_txt.exists():
+            return
+
+        # At this point, we have finished running a tool, so we know that
+        # sim_cfg.tool must have been set.
+        if sim_cfg.tool is None:
+            raise RuntimeError("sim_cfg.tool cannot be None now.")
+
+        plugin = get_sim_tool_plugin(tool=sim_cfg.tool)
+
+        results, _cov_total = plugin.get_cov_summary_table(
+            cov_report_path=cov_report_txt,
+        )
+
+        sim_cfg.cov_report_results = {tup[0]: tup[1] for tup in zip(*results, strict=False)}
+
+    return new_job_spec(
+        sim_cfg,
+        job_type="CovReport",
+        target=target,
+        name=ns["name"],
+        qual_name=target,
+        cmd=construct_job_cmd(
+            makefile=resolve_wildcards(ns["flow_makefile"], ns),
+            target=target,
+            dry_run=dry_run,
+            cmd_attrs={attr: resolve_wildcards(ns[attr], ns) for attr in cmd_attrs},
+        ),
+        odir=resolve_wildcards(ns["odir"], ns),
+        gui=sim_cfg.gui,
+        dry_run=dry_run,
+        exports=resolve_wildcards(ns["exports"], ns),
+        weight=10,
+        dependencies=[merge_job],
+        post_finish=post_finish,
+    )
+
+
+def create_cov_unr_job(sim_cfg: "SimCfg") -> JobSpec:
+    """Create a job spec for the coverage UNR flow.
+
+    Args:
+        sim_cfg: simulation config object
+
+    Returns:
+        the job spec for the UNR coverage calculation job.
+
+    """
+    target = "cov_unr"
+    cmd_attrs = (
+        # tool srcs
+        "proj_root",
+        # Need to generate filelist based on build mode
+        "sv_flist_gen_cmd",
+        "sv_flist_gen_dir",
+        "sv_flist_gen_opts",
+        "build_dir",
+        "cov_unr_build_cmd",
+        "cov_unr_build_opts",
+        "cov_unr_run_cmd",
+        "cov_unr_run_opts",
+    )
+
+    ns = job_namespace(
+        sim_cfg,
+        attrs=(*cmd_attrs, "cov_unr_dir", "cov_merge_db_dir", "build_fail_patterns"),
+        qual_name=target,
+        full_name=job_full_name(sim_cfg, target),
+        job_name=f"{Path(sim_cfg.scratch_path).name}_{target}",
+        odir="{cov_unr_dir}",
+    )
+
+    _apply_tool_plugin(ns, sim_cfg, target)
+
+    return new_job_spec(
+        sim_cfg,
+        job_type="CovUnr",
+        target=target,
+        name=ns["name"],
+        qual_name=target,
+        cmd=construct_job_cmd(
+            makefile=resolve_wildcards(ns["flow_makefile"], ns),
+            target=target,
+            dry_run=ns["dry_run"],
+            cmd_attrs={attr: resolve_wildcards(ns[attr], ns) for attr in cmd_attrs},
+        ),
+        odir=resolve_wildcards(ns["odir"], ns),
+        gui=sim_cfg.gui,
+        dry_run=ns["dry_run"],
+        exports=resolve_wildcards(ns["exports"], ns),
+        # Reuse the build_fail_patterns set in the HJson.
+        fail_patterns=resolve_wildcards(ns["build_fail_patterns"], ns),
+    )
+
+
+def create_cov_analyze_job(sim_cfg: "SimCfg") -> JobSpec:
+    """Create a job spec for running the coverage analysis tool.
+
+    Args:
+        sim_cfg: simulation config object
+
+    Returns:
+        the job spec for the coverage analysis job.
+
+    """
+    # Enforce GUI mode for coverage analysis.
+    sim_cfg.gui = True
+
+    target = "cov_analyze"
+    cmd_attrs = (
+        # tool srcs
+        "proj_root",
+        "cov_analyze_cmd",
+        "cov_analyze_opts",
+    )
+
+    ns = job_namespace(
+        sim_cfg,
+        attrs=(*cmd_attrs, "cov_analyze_dir", "cov_merge_db_dir"),
+        qual_name=target,
+        full_name=job_full_name(sim_cfg, target),
+        job_name=f"{Path(sim_cfg.scratch_path).name}_{target}",
+        odir="{cov_analyze_dir}",
+    )
+
+    _apply_tool_plugin(ns, sim_cfg, target)
+
+    return new_job_spec(
+        sim_cfg,
+        job_type="CovAnalyze",
+        target=target,
+        name=ns["name"],
+        qual_name=target,
+        cmd=construct_job_cmd(
+            makefile=resolve_wildcards(ns["flow_makefile"], ns),
+            target=target,
+            dry_run=ns["dry_run"],
+            cmd_attrs={attr: resolve_wildcards(ns[attr], ns) for attr in cmd_attrs},
+        ),
+        odir=resolve_wildcards(ns["odir"], ns),
+        gui=sim_cfg.gui,
+        dry_run=ns["dry_run"],
+        exports=resolve_wildcards(ns["exports"], ns),
+    )
+
+
+def create_cov_vplan_job(report_job: JobSpec, sim_cfg: "SimCfg") -> JobSpec:
+    """Create a job spec for generating a Verification Plan report using DVPlan.
+
+    Args:
+        report_job: the coverage report job this one depends on.
+        sim_cfg: simulation config object
+
+    Returns:
+        the job spec for the vPlan report job.
+
+    """
+    target = "cov_vplan"
+
+    ns = job_namespace(
+        sim_cfg,
+        attrs=("proj_root", "vplan", "dut_instance"),
+        cov_vplan_dir=f"{sim_cfg.scratch_path}/{target}",
+        qual_name=target,
+        full_name=job_full_name(sim_cfg, target),
+        job_name=f"{Path(sim_cfg.scratch_path).name}_{target}",
+        odir="{cov_vplan_dir}",
+    )
+
+    _apply_tool_plugin(ns, sim_cfg, target)
+
+    odir = resolve_wildcards(ns["odir"], ns)
+    vplan = resolve_wildcards(ns["vplan"], ns)
+    dut_instance = resolve_wildcards(ns["dut_instance"], ns)
+    prepare_opts = resolve_wildcards(sim_cfg.cov_vplan_prepare_opts, ns)
+    process_opts = resolve_wildcards(sim_cfg.cov_vplan_process_opts, ns)
+
+    # Calculate IP root.
+    ip_root = str(Path(vplan).parent.parent)
+
+    # Use fixed output filenames so the report location is always predictable.
+    annotated_hjson = f"{odir}/vplan_annotated.hjson"
+    gen_html = f"{odir}/vplan_annotated.html"
+
+    # Construct the pure bash shell command, bypassing the Makefile
+    # convention used by the other job types.
+    if shutil.which("dvplan") is None:
+        fallback = (
+            "echo 'WARNING: dvplan tool not installed in PATH. Skipping vPlan generation.'"
+        )
+        cmd = f"/usr/bin/env bash -c {shlex.quote(fallback)}"
+    else:
+
+        def format_opts(opts: list[str] | str) -> str:
+            return " ".join(opts) if isinstance(opts, list) else str(opts)
+
+        prepare_cmd = " ".join(
+            f"dvplan prepare_vplan {format_opts(prepare_opts)} "
+            f"{ip_root} {vplan} {annotated_hjson}".split(),
+        )
+
+        vendor_tool = f"{sim_cfg.tool}_report"
+        process_cmd = " ".join(
+            f"dvplan process_results {format_opts(process_opts)} "
+            f"--coverage {vendor_tool} {report_job.odir} "
+            f"-R {gen_html} -s {sim_cfg.name} {dut_instance} {annotated_hjson}".split(),
+        )
+
+        full_command = f"set -e; mkdir -p {odir}; {prepare_cmd} && {process_cmd}"
+        cmd = f"/usr/bin/env bash -c {shlex.quote(full_command)}"
+
+    annotated_hjson_path = Path(annotated_hjson)
+    dry_run = ns["dry_run"]
+
+    def post_finish(status: JobStatus) -> None:
+        """Extract the overall vPlan normalised coverage from the annotated HJSON.
+
+        The coverage is stored on the cfg (see SimCfg.vplan_coverage), which
+        is where the report generation looks for it.
+        """
+        if dry_run or status != JobStatus.PASSED:
+            return
+        if not annotated_hjson_path.exists():
+            return
+        try:
+            with annotated_hjson_path.open() as f:
+                data = hjson.load(f)
+            # HJSON vPlans are keyed: {dut_name: {fields...}}
+            root_node = next(iter(data.values()), {})
+            raw = root_node.get("Normalized_Coverage")
+            if raw is not None:
+                sim_cfg.vplan_coverage = float(str(raw).rstrip(" %"))
+        except Exception:  # noqa: BLE001
+            log.debug("Could not extract vPlan coverage from '%s'.", annotated_hjson_path)
+
+    return new_job_spec(
+        sim_cfg,
+        job_type="CovVPlan",
+        target=target,
+        name=ns["name"],
+        qual_name=target,
+        cmd=cmd,
+        odir=odir,
+        gui=sim_cfg.gui,
+        dry_run=dry_run,
+        exports=resolve_wildcards(ns["exports"], ns),
+        weight=10,
+        dependencies=[report_job],
+        post_finish=post_finish,
+    )
 
 
 class SimCfg(FlowCfg):
@@ -142,8 +801,15 @@ class SimCfg(FlowCfg):
         self.variant_name = ""
         self.build_list = []
         self.run_list = []
-        self.cov_merge_deploy = None
-        self.cov_report_deploy = None
+        self.cov_merge_job: JobSpec | None = None
+        self.cov_report_job: JobSpec | None = None
+        self.cov_vplan_job: JobSpec | None = None
+
+        # Results written back by the job post_finish callbacks (see
+        # create_cov_report_job / create_cov_vplan_job).
+        self.cov_report_results: dict[str, str] = {}
+        self.vplan_coverage: float | None = None
+
         self.results_summary = OrderedDict()
 
         super().__init__(flow_cfg_file, hjson_data, args, mk_config)
@@ -537,13 +1203,16 @@ class SimCfg(FlowCfg):
         tests A, B with reseed values of 5 and 2, respectively, then the list
         will be ABABAAA).
 
-        build_map is a dictionary mapping a build mode to a CompileSim object.
+        build_map is a dictionary mapping a build mode to its build job spec.
         """
         tagged = []
 
         for test in self.run_list:
             build_job = build_map[test.build_mode]
-            tagged.extend((idx, RunTest(idx, test, build_job, self)) for idx in range(test.reseed))
+            tagged.extend(
+                (idx, create_run_test_job(idx, test, build_job, self))
+                for idx in range(test.reseed)
+            )
 
         # Stably sort the tagged list by the 1st coordinate.
         tagged.sort(key=lambda x: x[0])
@@ -566,7 +1235,7 @@ class SimCfg(FlowCfg):
                 len(self.build_list),
                 build_mode_obj.name,
             )
-            new_build = CompileSim(build_mode_obj, self)
+            new_build = create_compile_sim_job(build_mode_obj, self)
 
             # It is possible for tests to supply different build modes, but
             # those builds may differ only under specific circumstances,
@@ -577,7 +1246,7 @@ class SimCfg(FlowCfg):
             # existing one.
             is_unique = True
             for build in self.builds:
-                if new_build.is_equivalent_job(build):
+                if is_equivalent_job_spec(build, new_build):
                     # Discard `new_build` since build implements the same
                     # thing. If `new_build` is the same as
                     # `primary_build_mode`, update `primary_build_mode` to
@@ -640,16 +1309,21 @@ class SimCfg(FlowCfg):
         if not self.build_only:
             self.deploy += self.runs
 
-            # Create cov_merge and cov_report objects, so long as we've got at
+            # Create cov_merge and cov_report jobs, so long as we've got at
             # least one run to do.
             if self.cov and self.runs:
-                self.cov_merge_deploy = CovMerge(self.runs, self)
-                self.cov_report_deploy = CovReport(self.cov_merge_deploy, self)
-                self.deploy += [self.cov_merge_deploy, self.cov_report_deploy]
+                # The build mode name of each run, used to derive the set of
+                # coverage databases to merge.
+                mode_by_test = {test.name: test.build_mode.name for test in self.run_list}
+                run_build_modes = [mode_by_test[run.name] for run in self.runs]
+
+                self.cov_merge_job = create_cov_merge_job(self.runs, run_build_modes, self)
+                self.cov_report_job = create_cov_report_job(self.cov_merge_job, self)
+                self.deploy += [self.cov_merge_job, self.cov_report_job]
 
                 if getattr(self, "vplan", False):
-                    self.cov_vplan_deploy = CovVPlan(self.cov_report_deploy, self)
-                    self.deploy.append(self.cov_vplan_deploy)
+                    self.cov_vplan_job = create_cov_vplan_job(self.cov_report_job, self)
+                    self.deploy.append(self.cov_vplan_job)
 
     def _cov_analyze(self) -> None:
         """Open GUI tool for coverage analysis.
@@ -657,8 +1331,7 @@ class SimCfg(FlowCfg):
         Use the last regression coverage data to open up the GUI tool to analyze
         the coverage.
         """
-        cov_analyze_deploy = CovAnalyze(self)
-        self.deploy = [cov_analyze_deploy]
+        self.deploy = [create_cov_analyze_job(self)]
 
     def cov_analyze(self) -> None:
         """Public facing API for analyzing coverage."""
@@ -676,8 +1349,7 @@ class SimCfg(FlowCfg):
             log.error("Only VCS and Xcelium are supported for the UNR flow.")
             sys.exit(1)
 
-        cov_unr_deploy = CovUnr(self)
-        self.deploy = [cov_unr_deploy]
+        self.deploy = [create_cov_unr_job(self)]
 
     def cov_unr(self) -> None:
         """Public facing API for analyzing coverage."""
@@ -905,12 +1577,11 @@ class SimCfg(FlowCfg):
         # --- Coverage ---
         coverage: dict[str, float | None] = {}
         coverage_model = None
-        if self.cov_report_deploy:
-            for k, v in self.cov_report_deploy.cov_results_dict.items():
-                try:
-                    coverage[k.lower()] = float(v.rstrip("% "))
-                except (ValueError, TypeError, AttributeError):
-                    coverage[k.lower()] = None
+        for k, v in self.cov_report_results.items():
+            try:
+                coverage[k.lower()] = float(v.rstrip("% "))
+            except (ValueError, TypeError, AttributeError):
+                coverage[k.lower()] = None
 
         coverage_model = get_sim_tool_plugin(self.tool).get_coverage_metrics(
             raw_metrics=coverage,
@@ -924,9 +1595,9 @@ class SimCfg(FlowCfg):
 
         vplan_report_page = None
         vplan_coverage = None
-        if getattr(self, "cov_vplan_deploy", None):
-            vplan_report_page = Path(self.scratch_path) / CovVPlan.target / "vplan_annotated.html"
-            vplan_coverage = self.cov_vplan_deploy.vplan_coverage
+        if self.cov_vplan_job:
+            vplan_report_page = Path(self.scratch_path) / "cov_vplan" / "vplan_annotated.html"
+            vplan_coverage = self.vplan_coverage
 
         failures = BucketedFailures.from_job_status(results=run_results)
         if failures.buckets:
@@ -954,41 +1625,37 @@ class SimCfg(FlowCfg):
         """Tell the fake backend how to fake jobs for this flow.
 
         Currently randomly returns 50% pass / 50% fail for RunTest jobs, and fakes injecting
-        randomized 0-100% coverage results into the CovReport job's Deploy object.
+        randomized 0-100% coverage results into the cfg's coverage report results.
         """
         if job.job_type == "RunTest":
             return random.choice((JobStatus.PASSED, JobStatus.FAILED))
 
-        # TODO: hack, try to remove. Annotate the deploy object with some faked
+        # TODO: hack, try to remove. Annotate the cfg with some faked
         # coverage results. Just allows us to fake coverage results for now
         # without needing to create a fake result file or significantly refactor.
         if job.job_type == "CovReport":
             for item in self.cfgs:
-                for deploy in item.deploy:
-                    if deploy.full_name == job.full_name:
-                        fake_keys = [
-                            "score",
-                            "assert",
-                            "group",
-                            "block",
-                            "line",
-                            "branch",
-                            "cond",
-                            "toggle",
-                            "fsm",
-                        ]
-                        # Approximate the correct keys; in reality some jobs might not
-                        # have certain types of coverage (e.g. FSM) depending on the RTL
-                        if job.tool == "vcs":
-                            fake_keys.remove("block")
-                        elif job.tool == "xcelium":
-                            fake_keys.remove("cond")
-                        deploy.cov_results_dict = {
-                            k: f"{random.random() * 100:.2f} %" for k in fake_keys
-                        }
-                        break
-                else:
-                    continue
-                break
+                if item.cov_report_job and item.cov_report_job.full_name == job.full_name:
+                    fake_keys = [
+                        "score",
+                        "assert",
+                        "group",
+                        "block",
+                        "line",
+                        "branch",
+                        "cond",
+                        "toggle",
+                        "fsm",
+                    ]
+                    # Approximate the correct keys; in reality some jobs might not
+                    # have certain types of coverage (e.g. FSM) depending on the RTL
+                    if job.tool == "vcs":
+                        fake_keys.remove("block")
+                    elif job.tool == "xcelium":
+                        fake_keys.remove("cond")
+                    item.cov_report_results = {
+                        k: f"{random.random() * 100:.2f} %" for k in fake_keys
+                    }
+                    break
 
         return JobStatus.PASSED

@@ -2,14 +2,16 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Test Job deployment models."""
+"""Test job spec factories."""
 
 from collections.abc import Mapping
+from pathlib import Path
 
 import pytest
 from hamcrest import assert_that, equal_to
 
-from dvsim.job.deploy import CompileSim
+from dvsim.job.data import JobSpec, WorkspaceConfig
+from dvsim.sim.flow import create_compile_sim_job
 
 __all__ = ()
 
@@ -36,10 +38,23 @@ class FakeSimCfg:
         self.args = FakeCliArgs()
         self.dry_run = True
         self.gui = False
+        self.interactive = False
 
         self.scratch_path = "/scratch_path"
         self.scratch_root = "/scratch_root"
         self.proj_root = "/project"
+
+        self.tool = "faketool"
+        self.commit = "0123456789abcdef"
+        self.commit_short = "0123456"
+        self.branch = "main"
+        self.revision = "revision"
+        self.workspace_cfg = WorkspaceConfig(
+            timestamp="timestamp",
+            project_root=Path("/project"),
+            scratch_root=Path("/scratch_root"),
+            scratch_path=Path("/scratch_path"),
+        )
 
         self.exports = []
 
@@ -48,19 +63,18 @@ class FakeSimCfg:
         self.pre_build_cmds = ["A", "B"]
         self.post_build_cmds = ["C", "D"]
         self.build_dir = "build/dir"
-        self.build_pass_patterns = None
-        self.build_fail_patterns = None
+        self.build_pass_patterns = []
+        self.build_fail_patterns = []
         self.build_seed = 123
 
         self.sv_flist_gen_cmd = "gen_cmd"
         self.sv_flist_gen_opts = []
         self.sv_flist_gen_dir = "path/to/gen"
 
-        self.cov = True
         self.cov_db_dir = "path"
 
     def wildcard_namespace(self) -> dict:
-        """Return the wildcard substitution namespace (see FlowCfg)."""
+        """Return the wildcard substitution namespace (see dvsim.flow.bootstrap)."""
         return self.__dict__
 
 
@@ -76,13 +90,13 @@ class FakeBuildMode:
         self.post_build_opts = ["E"]
 
 
-def _build_compile_sim(
+def _create_compile_sim_job(
     *,
     build_overrides: Mapping | None = None,
     sim_overrides: Mapping | None = None,
     cli_args_overrides: Mapping | None = None,
-) -> CompileSim:
-    """Build CompileSim object.
+) -> JobSpec:
+    """Create a build job spec.
 
     Test helper that takes overrides to apply on top of the default values for
     the BuildMode and SimCfg fake objects.
@@ -105,14 +119,14 @@ def _build_compile_sim(
     # Override the cli args in the sim configuration
     sim_cfg.args = cli_args
 
-    return CompileSim.new(
-        build_mode_obj=build_mode_obj,
+    return create_compile_sim_job(
+        build_mode=build_mode_obj,
         sim_cfg=sim_cfg,
     )
 
 
-class TestCompileSim:
-    """Test CompileSim."""
+class TestCreateCompileSimJob:
+    """Test the create_compile_sim_job factory."""
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -152,8 +166,8 @@ class TestCompileSim:
         ],
     )
     def test_cmd(build_overrides: Mapping, sim_overrides: Mapping, exp_cmd: str) -> None:
-        """Test that a CompileSim has the expected cmd."""
-        job = _build_compile_sim(
+        """Test that a build job spec has the expected cmd."""
+        job = _create_compile_sim_job(
             build_overrides=build_overrides,
             sim_overrides=sim_overrides,
         )
@@ -177,8 +191,8 @@ class TestCompileSim:
         name: str,
         full_name: str,
     ) -> None:
-        """Test that a CompileSim ends up with the expected names."""
-        job = _build_compile_sim(
+        """Test that a build job spec ends up with the expected names."""
+        job = _create_compile_sim_job(
             build_overrides=build_overrides,
             sim_overrides=sim_overrides,
         )
@@ -199,8 +213,8 @@ class TestCompileSim:
         sim_overrides: Mapping,
         seed: int,
     ) -> None:
-        """Test that a CompileSim ends up with the expected seed."""
-        job = _build_compile_sim(
+        """Test that a build job spec ends up with the expected seed."""
+        job = _create_compile_sim_job(
             sim_overrides=sim_overrides,
         )
 
@@ -219,10 +233,10 @@ class TestCompileSim:
         build_overrides: Mapping,
         timeout: int,
     ) -> None:
-        """Test that a CompileSim ends up with the expected timeout."""
-        job = _build_compile_sim(
+        """Test that a build job spec ends up with the expected timeout."""
+        job = _create_compile_sim_job(
             build_overrides=build_overrides,
             cli_args_overrides=cli_args_overrides,
         )
 
-        assert_that(job.build_timeout_mins, equal_to(timeout))
+        assert_that(job.timeout_mins, equal_to(timeout))

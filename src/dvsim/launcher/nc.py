@@ -17,7 +17,7 @@ from dvsim.logging import log
 from dvsim.utils import rm_path
 
 if TYPE_CHECKING:
-    from dvsim.job.deploy import WorkspaceConfig
+    from dvsim.job.data import WorkspaceConfig
 
 
 class NcLauncher(Launcher):

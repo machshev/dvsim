@@ -12,7 +12,7 @@ from dvsim.job.data import JobSpec
 from dvsim.sim.data import CoverageMetrics
 
 if TYPE_CHECKING:
-    from dvsim.job.deploy import Deploy
+    from dvsim.job.factory import FlowConfigLike
 
 __all__ = ("SimTool",)
 
@@ -92,11 +92,13 @@ class SimTool(Protocol):
         ...
 
     @staticmethod
-    def set_additional_attrs(deploy: "Deploy") -> None:
-        """Define any additional tool-specific attrs on the deploy object.
+    def set_additional_attrs(attrs: dict, sim_cfg: "FlowConfigLike", target: str) -> None:
+        """Define any additional tool-specific attrs for a job.
 
         Args:
-            deploy: the deploy object to mutate.
+            attrs: the job attribute dict to mutate.
+            sim_cfg: the flow config the job belongs to.
+            target: the job target (build, run, ...).
 
         """
         ...

@@ -12,7 +12,7 @@ import sys
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 import hjson
 
@@ -33,9 +33,6 @@ from dvsim.utils import (
     subst_wildcards,
 )
 from dvsim.utils.git import git_commit_hash
-
-if TYPE_CHECKING:
-    from dvsim.job.deploy import Deploy
 
 __all__ = ("FlowCfg",)
 
@@ -105,10 +102,10 @@ class FlowCfg(ABC):
         # a special key 'use_cfgs' within the hjson cfg.
         self.is_primary_cfg = False
 
-        # For a primary cfg, it is the aggregated list of all deploy objects
+        # For a primary cfg, it is the aggregated list of all job specs
         # under self.cfgs. For a non-primary cfg, it is the list of items
         # slated for dispatch.
-        self.deploy: Sequence[Deploy] = []
+        self.deploy: Sequence[JobSpec] = []
 
         # Timestamp
         self.timestamp_long = args.timestamp_long
@@ -462,15 +459,13 @@ class FlowCfg(ABC):
 
         Runs each job and returns a map from item to status.
         """
-        deploy = []
+        jobs: list[JobSpec] = []
         for item in self.cfgs:
-            deploy.extend(item.deploy)
+            jobs.extend(item.deploy)
 
-        if not deploy:
+        if not jobs:
             log.error("Nothing to run!")
             sys.exit(1)
-
-        jobs = [d.get_job_spec() for d in deploy]
 
         if os.environ.get("DVSIM_DEPLOY_DUMP", "true"):
             filename = f"deploy_{self.branch}_{self.timestamp}.json"

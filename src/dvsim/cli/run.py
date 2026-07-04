@@ -34,7 +34,6 @@ from pathlib import Path
 from dvsim.flow.factory import make_cfg
 from dvsim.instrumentation.factory import InstrumentationFactory
 from dvsim.instrumentation.runtime import set_instrumentation
-from dvsim.job.deploy import RunTest
 from dvsim.launcher.base import Launcher
 from dvsim.launcher.nc import NcLauncher
 from dvsim.launcher.slurm import SlurmLauncher
@@ -43,6 +42,7 @@ from dvsim.runtime.backend import RuntimeBackend
 from dvsim.runtime.registry import BackendType, backend_registry
 from dvsim.scheduler.resources import UnknownResourcePolicy
 from dvsim.scheduler.status_printer import StatusPrinter, get_status_printer
+from dvsim.sim.flow import set_test_seeds
 from dvsim.utils import TS_FORMAT, TS_FORMAT_LONG, rm_path, run_cmd_with_timeout
 
 # The different categories that can be passed to the --list argument.
@@ -963,13 +963,12 @@ def main(argv: list[str] | None = None) -> None:
     args.timestamp_long = curr_ts.strftime(TS_FORMAT_LONG)
     args.timestamp = curr_ts.strftime(TS_FORMAT)
 
-    # Register the seeds from command line with the RunTest class.
-    RunTest.seeds = args.seeds
-
     # If we are fixing a seed value, no point in tests having multiple reseeds.
     if args.fixed_seed is not None:
         args.reseed = 1
-    RunTest.fixed_seed = args.fixed_seed
+
+    # Register the seeds from command line with the sim flow.
+    set_test_seeds(args.seeds, args.fixed_seed)
 
     # Register the common deploy settings.
     StatusPrinter.print_interval = args.print_interval

@@ -14,7 +14,7 @@ from dvsim.launcher.base import ErrorMessage, Launcher, LauncherError
 from dvsim.logging import log
 
 if TYPE_CHECKING:
-    from dvsim.job.deploy import WorkspaceConfig
+    from dvsim.job.data import WorkspaceConfig
 
 SLURM_QUEUE = os.environ.get("SLURM_QUEUE", "hw-m")
 SLURM_MEM = os.environ.get("SLURM_MEM", "16G")

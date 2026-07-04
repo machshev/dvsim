@@ -12,11 +12,94 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from dvsim.flow.base import FlowCfg
-from dvsim.job.data import CompletedJobStatus
-from dvsim.job.deploy import CompileOneShot
+from dvsim.job.data import CompletedJobStatus, JobSpec
+from dvsim.job.factory import (
+    construct_job_cmd,
+    job_full_name,
+    job_namespace,
+    new_job_spec,
+    resolve_wildcards,
+)
 from dvsim.logging import log
 from dvsim.modes import BuildMode
 from dvsim.utils import rm_path
+
+
+def create_compile_one_shot_job(build_mode: BuildMode, sim_cfg: "OneShotCfg") -> JobSpec:
+    """Create a job spec for building the design (used by non-DV flows).
+
+    Args:
+        build_mode: build mode instance
+        sim_cfg: flow config object
+
+    Returns:
+        the job spec for the build job.
+
+    """
+    target = "build"
+    cmd_attrs = (
+        # tool srcs
+        "proj_root",
+        # Flist gen
+        "sv_flist_gen_cmd",
+        "sv_flist_gen_dir",
+        "sv_flist_gen_opts",
+        # Build
+        "build_dir",
+        "build_cmd",
+        "build_opts",
+        "build_log",
+        "build_timeout_mins",
+        "post_build_cmds",
+        "post_build_opts",
+        "pre_build_cmds",
+        # Report processing
+        "report_cmd",
+        "report_opts",
+    )
+
+    name = build_mode.name
+    ns = job_namespace(
+        sim_cfg,
+        attrs=(*cmd_attrs, "build_fail_patterns", "build_pass_patterns"),
+        mode_dict=build_mode.__dict__,
+        # 'build_mode' is used as a substitution variable in the HJson.
+        build_mode=name,
+        name=name,
+        qual_name=name,
+        full_name=job_full_name(sim_cfg, name),
+        job_name=f"{Path(sim_cfg.scratch_path).name}_{target}_{name}",
+        odir="{build_dir}",
+    )
+
+    if sim_cfg.args.build_timeout_mins is not None:
+        ns["build_timeout_mins"] = sim_cfg.args.build_timeout_mins
+
+    timeout_mins = ns["build_timeout_mins"]
+    if timeout_mins:
+        log.debug('Timeout for job "%s" is %d minutes.', name, timeout_mins)
+
+    return new_job_spec(
+        sim_cfg,
+        job_type="CompileOneShot",
+        target=target,
+        name=name,
+        qual_name=name,
+        cmd=construct_job_cmd(
+            makefile=resolve_wildcards(ns["flow_makefile"], ns),
+            target=target,
+            dry_run=ns["dry_run"],
+            cmd_attrs={attr: resolve_wildcards(ns[attr], ns) for attr in cmd_attrs},
+        ),
+        odir=resolve_wildcards(ns["odir"], ns),
+        gui=sim_cfg.gui,
+        dry_run=ns["dry_run"],
+        exports=resolve_wildcards(ns["exports"], ns),
+        # Limit build jobs to 60 minutes if the timeout is not set.
+        timeout_mins=timeout_mins if timeout_mins is not None else 60,
+        pass_patterns=resolve_wildcards(ns["build_pass_patterns"], ns),
+        fail_patterns=resolve_wildcards(ns["build_fail_patterns"], ns),
+    )
 
 
 class OneShotCfg(FlowCfg):
@@ -159,11 +242,8 @@ class OneShotCfg(FlowCfg):
                 log.error("Item %s does not exist!", list_item)
 
     def _create_deploy_objects(self) -> None:
-        """Create deploy objects from build modes."""
-        builds = []
-        for build in self.build_modes:
-            item = CompileOneShot(build, self)
-            builds.append(item)
+        """Create job specs from build modes."""
+        builds = [create_compile_one_shot_job(build, self) for build in self.build_modes]
 
         self.builds = builds
         self.deploy = builds
