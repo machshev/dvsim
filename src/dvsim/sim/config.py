@@ -14,9 +14,9 @@ mode merging.
 
 from collections.abc import Mapping
 
-from pydantic import ConfigDict, Field, ValidationError
+from pydantic import ConfigDict, Field
 
-from dvsim.flow.config import FlowConfig
+from dvsim.flow.config import FlowConfig, load_flow_config
 from dvsim.modes import BuildModeConfig, RunModeConfig
 from dvsim.regression import RegressionConfig
 from dvsim.test import TestConfig
@@ -153,8 +153,4 @@ def load_sim_flow_config(path: str, hjson_data: Mapping) -> SimFlowConfig:
         RuntimeError: if the data does not match the schema.
 
     """
-    try:
-        return SimFlowConfig.model_validate(dict(hjson_data))
-    except ValidationError as err:
-        msg = f"{path!r}: sim flow config does not match the schema:\n{err}"
-        raise RuntimeError(msg) from err
+    return load_flow_config(path, hjson_data, SimFlowConfig)

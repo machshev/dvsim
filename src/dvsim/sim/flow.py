@@ -18,13 +18,19 @@ from pathlib import Path
 from typing import ClassVar
 
 import hjson
-from pydantic import ValidationError
 
 from dvsim.flow.bootstrap import (
     default_rel_path,
     expand_wildcards,
     finalize_flow_state,
     init_flow_state,
+)
+from dvsim.flow.config import (
+    apply_config_expansion,
+    config_attr,
+    config_wildcard_namespace,
+    merge_flow_config,
+    process_config_overrides,
 )
 from dvsim.job.data import CompletedJobStatus, JobSpec
 from dvsim.job.factory import (
@@ -39,7 +45,7 @@ from dvsim.job.status import JobStatus
 from dvsim.logging import log
 from dvsim.modes import BuildMode, Mode, RunMode, find_mode
 from dvsim.regression import Regression
-from dvsim.sim.config import SimFlowConfig, load_sim_flow_config
+from dvsim.sim.config import SimFlowConfig
 from dvsim.sim.data import (
     IPMeta,
     SimFlowResults,
@@ -798,9 +804,9 @@ class SimCfg:
             en_build_modes.append("build_seed")
 
         # Command-line options that seed config list values. These are folded
-        # into the config model in _merge_hjson: the command-line values come
-        # first and the values from the hjson config files are appended.
-        self._cli_config_seeds = {
+        # into the config model: the command-line values come first and the
+        # values from the hjson config files are appended.
+        cli_config_seeds = {
             "build_opts": list(args.build_opts),
             "en_build_modes": en_build_modes,
             "run_opts": list(args.run_opts),
@@ -825,8 +831,13 @@ class SimCfg:
         init_flow_state(self, flow_cfg_file, args)
 
         # Merge in the values from the loaded hjson file (into the typed
-        # config model - see _merge_hjson).
-        self._merge_hjson(hjson_data)
+        # config model - see dvsim.flow.config).
+        merge_flow_config(
+            self,
+            hjson_data,
+            model_cls=SimFlowConfig,
+            cli_seeds=cli_config_seeds,
+        )
 
         # A primary cfg simply groups child cfgs (see dvsim.flow.group).
         self.is_primary_cfg = "use_cfgs" in hjson_data
@@ -834,7 +845,7 @@ class SimCfg:
         default_rel_path(self)
 
         # Process overrides before substituting wildcards.
-        self._process_overrides()
+        process_config_overrides(self)
 
         # Expand wildcards.
         self._expand()
@@ -846,121 +857,19 @@ class SimCfg:
 
         Only invoked when normal attribute lookup fails, so runtime instance
         attributes (including ones shadowing config keys) take precedence.
-        Only config keys are delegated - the model's own API is not exposed.
         """
-        config = self.__dict__.get("config")
-        if (
-            config is not None
-            and not (name.startswith("__") and name.endswith("__"))
-            and (name in SimFlowConfig.model_fields or name in (config.model_extra or {}))
-        ):
-            return getattr(config, name)
-
-        msg = f"{type(self).__name__!r} object has no attribute {name!r}"
-        raise AttributeError(msg)
-
-    def _is_config_key(self, name: str) -> bool:
-        """Whether `name` is a key managed by the config model."""
-        return name in SimFlowConfig.model_fields or name in (self.config.model_extra or {})
-
-    def _merge_hjson(self, hjson_data: Mapping) -> None:
-        """Load the hjson data into the typed config model.
-
-        Unlike the base class, the sim flow does not merge the hjson data
-        into the instance `__dict__`: the validated `SimFlowConfig` model is
-        the config state and attribute reads fall through to it (see
-        `__getattr__`), with the schema field defaults serving as the config
-        defaults.
-        """
-        try:
-            self.config = load_sim_flow_config(self.flow_cfg_file, hjson_data)
-        except RuntimeError as err:
-            log.error(str(err))
-            sys.exit(1)
-
-        # Drop the instance defaults set by init_flow_state for keys the
-        # config model manages - they would otherwise shadow the config.
-        for key in [k for k in self.__dict__ if self._is_config_key(k)]:
-            del self.__dict__[key]
-
-        # Fold the command-line seeded options into the config. CLI values
-        # come first, matching the historic merge order where hjson values
-        # were appended to the CLI-seeded lists.
-        for key, seed in self._cli_config_seeds.items():
-            setattr(self.config, key, [*seed, *getattr(self.config, key)])
-        del self._cli_config_seeds
-
-    def _process_overrides(self) -> None:
-        """Apply the typed overrides from the config model."""
-        overrides_seen = {}
-        for override in self.config.overrides:
-            if override.name in overrides_seen:
-                log.error(
-                    'Override for key "%s" already exists!\nOld: %s\nNew: %s',
-                    override.name,
-                    overrides_seen[override.name],
-                    override.value,
-                )
-                sys.exit(1)
-            overrides_seen[override.name] = override.value
-            self._do_override(override.name, override.value)
-
-    def _do_override(self, ov_name: str, ov_value: object) -> None:
-        """Override a single attribute, preferring runtime state over config."""
-        in_instance = ov_name in self.__dict__
-        if in_instance:
-            orig_value = self.__dict__[ov_name]
-        elif self._is_config_key(ov_name):
-            orig_value = getattr(self.config, ov_name)
-        else:
-            log.error('Override key "%s" not found in the cfg!', ov_name)
-            sys.exit(1)
-
-        if not isinstance(ov_value, type(orig_value)):
-            log.error(
-                'The type of override value "%s" for "%s" '
-                'doesn\'t match the type of original value "%s"',
-                ov_value,
-                ov_name,
-                orig_value,
-            )
-            sys.exit(1)
-
-        log.debug('Overriding "%s" value "%s" with "%s"', ov_name, orig_value, ov_value)
-        if in_instance:
-            self.__dict__[ov_name] = ov_value
-        else:
-            setattr(self.config, ov_name, ov_value)
+        return config_attr(self, name)
 
     def wildcard_namespace(self) -> dict:
         """Merge the config model into the wildcard substitution namespace.
 
         Runtime instance attributes shadow config values of the same name.
         """
-        namespace = self.config.model_dump()
-        namespace.update(self.__dict__)
-        return namespace
+        return config_wildcard_namespace(self)
 
     def apply_expansion(self, expanded: Mapping) -> None:
-        """Split the expanded namespace back into config and runtime state.
-
-        Keys that live in the instance `__dict__` (runtime state, including
-        shadowed config keys) are updated in place; everything else is config
-        data and is re-validated into a fresh config model.
-        """
-        instance_keys = set(self.__dict__)
-        cfg_data = {k: v for k, v in expanded.items() if k not in instance_keys}
-        self.__dict__.update((k, v) for k, v in expanded.items() if k in instance_keys)
-
-        try:
-            self.config = SimFlowConfig.model_validate(cfg_data)
-        except ValidationError as err:
-            log.error(
-                "%r: config is no longer schema-valid after wildcard expansion:\n%s",
-                self.flow_cfg_file,
-                err,
-            )
-            sys.exit(1)
+        """Split the expanded namespace back into config and runtime state."""
+        apply_config_expansion(self, expanded)
 
     def _expand(self) -> None:
         # Choose a wave format now. Note that this has to happen after parsing

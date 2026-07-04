@@ -12,13 +12,21 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, ClassVar
 
+from pydantic import ConfigDict, Field
+
 from dvsim.flow.bootstrap import (
     default_rel_path,
     expand_wildcards,
     finalize_flow_state,
     init_flow_state,
-    merge_hjson,
-    process_overrides,
+)
+from dvsim.flow.config import (
+    FlowConfig,
+    apply_config_expansion,
+    config_attr,
+    config_wildcard_namespace,
+    merge_flow_config,
+    process_config_overrides,
 )
 from dvsim.job.data import CompletedJobStatus, JobSpec
 from dvsim.job.factory import (
@@ -111,11 +119,72 @@ def create_compile_one_shot_job(build_mode: BuildMode, sim_cfg: "OneShotCfg") ->
     )
 
 
+class OneShotFlowConfig(FlowConfig):
+    """Schema for a one-shot flow config.
+
+    Typed fields cover the keys that dvsim itself reads; further
+    project-specific keys (wildcard substitution variables) are allowed and
+    checked by the base class. `OneShotCfg` holds an instance of this model
+    as its config state, with the field defaults serving as the config
+    defaults. Subflows with additional config keys extend this model (see
+    `OneShotCfg.config_model`).
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    # Structural sections. The modes are raw dicts here; they are turned
+    # into BuildMode objects by OneShotCfg._create_objects.
+    build_modes: list[dict] = Field(default_factory=list)
+    run_modes: list[dict] = Field(default_factory=list)
+    regressions: list[dict] = Field(default_factory=list)
+    en_build_modes: list[str] = Field(default_factory=list)
+
+    # Testbench / DUT.
+    dut: str = ""
+    fusesoc_core: str = ""
+    ral_spec: str = ""
+
+    # Build.
+    flow_makefile: str = ""
+    build_cmd: str = ""
+    build_dir: str = ""
+    build_log: str = ""
+    build_opts: list[str] = Field(default_factory=list)
+
+    # Run.
+    run_dir: str = ""
+    pass_patterns: list[str] = Field(default_factory=list)
+    fail_patterns: list[str] = Field(default_factory=list)
+    verbosity: str = ""
+
+    # File list generation.
+    flist_gen_cmd: str = ""
+    flist_gen_opts: list[str] = Field(default_factory=list)
+    flist_file: str = ""
+    sv_flist_gen_dir: str = ""
+
+    # Report processing.
+    report_cmd: str = ""
+    report_opts: list[str] = Field(default_factory=list)
+    max_msg_count: int = -1
+
+
 class OneShotCfg(ABC):
-    """Simple one-shot build flow for non-simulation targets like linting, synthesis and FPV."""
+    """Simple one-shot build flow for non-simulation targets like linting, synthesis and FPV.
+
+    The flow keeps its config-file state in `self.config`, a validated
+    `OneShotFlowConfig` model. Attribute reads fall through to the model
+    (see `__getattr__`), while runtime state lives on the instance as usual
+    and shadows config values where the names collide (e.g. `build_modes`
+    is rebound to a list of `BuildMode` objects once created).
+    """
 
     # The hjson 'flow' key that selects this flow config; set in subclasses.
     flow: ClassVar[str | None] = None
+
+    # The config model validating this flow's hjson data; subflows with
+    # additional config keys override this with an extended model.
+    config_model: ClassVar[type[OneShotFlowConfig]] = OneShotFlowConfig
 
     ignored_wildcards: ClassVar[list[str]] = [
         "build_mode",
@@ -143,60 +212,31 @@ class OneShotCfg(ABC):
         """
         # Options set from command line
         self.verbose = args.verbose
-        self.flist_gen_cmd = ""
-        self.flist_gen_opts = []
-        self.sv_flist_gen_dir = ""
-        self.flist_file = ""
-        self.build_cmd = ""
-        self.build_opts = []
-        self.build_log = ""
-        self.report_cmd = ""
-        self.report_opts = []
-        self.build_opts.extend(args.build_opts)
         self.build_unique = args.build_unique
         self.build_only = args.build_only
-
-        # Options built from cfg_file files
-        self.project = ""
-        self.flow = ""
-        self.flow_makefile = ""
-        self.scratch_path = ""
-        self.build_dir = ""
-        self.run_dir = ""
-        self.pass_patterns = []
-        self.fail_patterns = []
-        self.name = ""
-        self.dut = ""
-        self.fusesoc_core = ""
-        self.ral_spec = ""
-        self.build_modes: Sequence[BuildMode] = []
-        self.run_modes = []
-        self.regressions = []
-        self.max_msg_count = -1
+        self.dry_run = args.dry_run
 
         # Flow results
         self.result = OrderedDict()
         self.result_summary = OrderedDict()
 
-        self.dry_run = args.dry_run
-
-        # Not needed for this build
-        self.verbosity = ""
-        self.en_build_modes = []
-
         # Generated data structures
         self.build_list = []
         self.deploy = []
-        self.cov = args.cov
 
         init_flow_state(self, flow_cfg_file, args)
 
-        # If build_unique is set, then add current timestamp to uniquify it
-        if self.build_unique:
-            self.build_dir += "_" + self.timestamp
+        # Merge in the values from the loaded hjson file (into the typed
+        # config model - see dvsim.flow.config).
+        merge_flow_config(
+            self,
+            hjson_data,
+            model_cls=self.config_model,
+            cli_seeds={"build_opts": list(args.build_opts)},
+        )
 
-        # Merge in the values from the loaded hjson file.
-        merge_hjson(self, hjson_data)
+        # Coverage is enabled with the --cov switch or by the hjson config.
+        self.cov = args.cov or getattr(self, "cov", False)
 
         # A primary cfg simply groups child cfgs (see dvsim.flow.group).
         self.is_primary_cfg = "use_cfgs" in hjson_data
@@ -204,7 +244,11 @@ class OneShotCfg(ABC):
         default_rel_path(self)
 
         # Process overrides before substituting wildcards.
-        process_overrides(self)
+        process_config_overrides(self)
+
+        # If build_unique is set, then add current timestamp to uniquify it
+        if self.build_unique:
+            self.build_dir += "_" + self.timestamp
 
         # Expand wildcards.
         expand_wildcards(self)
@@ -224,17 +268,24 @@ class OneShotCfg(ABC):
 
         finalize_flow_state(self)
 
-    def wildcard_namespace(self) -> Mapping:
-        """Return the flat mapping used for wildcard substitution.
+    def __getattr__(self, name: str):
+        """Fall back to the config model for attribute reads.
 
-        This combines all config and runtime state, which for this flow is
-        the instance `__dict__`.
+        Only invoked when normal attribute lookup fails, so runtime instance
+        attributes (including ones shadowing config keys) take precedence.
         """
-        return self.__dict__
+        return config_attr(self, name)
+
+    def wildcard_namespace(self) -> Mapping:
+        """Merge the config model into the wildcard substitution namespace.
+
+        Runtime instance attributes shadow config values of the same name.
+        """
+        return config_wildcard_namespace(self)
 
     def apply_expansion(self, expanded: Mapping) -> None:
-        """Store the result of wildcard expansion of `wildcard_namespace()`."""
-        self.__dict__ = expanded
+        """Split the expanded namespace back into config and runtime state."""
+        apply_config_expansion(self, expanded)
 
     def has_errors(self) -> bool:
         """Return error state."""

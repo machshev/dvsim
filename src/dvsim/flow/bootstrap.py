@@ -5,31 +5,26 @@
 """Shared bootstrap steps for flow configurations.
 
 There is no flow base class: each flow class composes the free functions in
-this module in its own `__init__`, in the order that suits it, and keeps its
-config state however it likes (the dict-based flows merge the hjson data
-into their instance `__dict__`; the sim flow keeps a validated pydantic
-model). The functions operate on a duck-typed flow object — see
-`dvsim.flow.group.Flow` for the informal contract.
+this module in its own `__init__`, in the order that suits it. The config
+state lives in a validated pydantic model (see `dvsim.flow.config`) while
+runtime state lives on the instance. The functions operate on a duck-typed
+flow object — see `dvsim.flow.group.Flow` for the informal contract.
 
 The usual sequence is:
 
     init_flow_state(self, flow_cfg_file, args)
-    <merge the hjson data into the flow's config state>
+    merge_flow_config(self, hjson_data, model_cls=...)
     self.is_primary_cfg = "use_cfgs" in hjson_data
     default_rel_path(self)
-    <apply config overrides>
+    process_config_overrides(self)
     expand_wildcards(self)
     finalize_flow_state(self)
 """
 
-import sys
 from argparse import Namespace
-from collections.abc import Mapping
 from pathlib import Path
 
-from dvsim.flow.hjson import set_target_attribute
 from dvsim.job.data import WorkspaceConfig
-from dvsim.logging import log
 from dvsim.utils import find_and_substitute_wildcards
 from dvsim.utils.git import git_commit_hash
 
@@ -38,8 +33,6 @@ __all__ = (
     "expand_wildcards",
     "finalize_flow_state",
     "init_flow_state",
-    "merge_hjson",
-    "process_overrides",
 )
 
 
@@ -117,89 +110,12 @@ def init_flow_state(flow, flow_cfg_file: str, args: Namespace) -> None:
     flow.results_summary_md = ""
 
 
-def merge_hjson(flow, hjson_data: Mapping) -> None:
-    """Merge hjson data into the flow's instance `__dict__`.
-
-    This is for the dict-based flows; flows that keep their config in a
-    separate store (see `SimCfg`) route the hjson data there instead.
-    """
-    for key, value in hjson_data.items():
-        set_target_attribute(flow.flow_cfg_file, flow.__dict__, key, value)
-
-
 def default_rel_path(flow) -> None:
     """Default the results path (relative to `proj_root`) to the cfg's dir."""
     if flow.rel_path == "":
         flow.rel_path = str(
             Path(flow.flow_cfg_file).parent.relative_to(flow.proj_root),
         )
-
-
-def process_overrides(flow) -> None:
-    """Apply the `overrides` list to the flow's attributes.
-
-    Looks through the flow and finds available overrides. If an override is
-    available, checks that the type of the value for the existing and the
-    overridden keys are the same.
-
-    This is for the dict-based flows; flows that keep their config in a
-    separate store (see `SimCfg`) implement their own override handling.
-    """
-    overrides_dict = {}
-    if hasattr(flow, "overrides"):
-        overrides = flow.overrides
-        if type(overrides) is not list:
-            log.error(
-                'The type of key "overrides" is %s - it should be a list',
-                type(overrides),
-            )
-            sys.exit(1)
-
-        # Process override one by one
-        for item in overrides:
-            if type(item) is dict and set(item.keys()) == {"name", "value"}:
-                ov_name = item["name"]
-                ov_value = item["value"]
-                if ov_name not in overrides_dict:
-                    overrides_dict[ov_name] = ov_value
-                    _do_override(flow, ov_name, ov_value)
-                else:
-                    log.error(
-                        'Override for key "%s" already exists!\nOld: %s\nNew: %s',
-                        ov_name,
-                        overrides_dict[ov_name],
-                        ov_value,
-                    )
-                    sys.exit(1)
-            else:
-                log.error(
-                    '"overrides" is a list of dicts with '
-                    '{"name": <name>, "value": <value>} pairs. '
-                    "Found this instead:\n%s",
-                    str(item),
-                )
-                sys.exit(1)
-
-
-def _do_override(flow, ov_name: str, ov_value: object) -> None:
-    """Replace a flow attribute with an override value of matching type."""
-    if hasattr(flow, ov_name):
-        orig_value = getattr(flow, ov_name)
-        if isinstance(ov_value, type(orig_value)):
-            log.debug('Overriding "%s" value "%s" with "%s"', ov_name, orig_value, ov_value)
-            setattr(flow, ov_name, ov_value)
-        else:
-            log.error(
-                'The type of override value "%s" for "%s" '
-                'doesn\'t match the type of original value "%s"',
-                ov_value,
-                ov_name,
-                orig_value,
-            )
-            sys.exit(1)
-    else:
-        log.error('Override key "%s" not found in the cfg!', ov_name)
-        sys.exit(1)
 
 
 def expand_wildcards(flow) -> None:

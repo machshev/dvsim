@@ -6,14 +6,34 @@
 
 from collections.abc import Sequence
 from pathlib import Path
+from typing import ClassVar
 
+from pydantic import ConfigDict, Field
 from tabulate import tabulate
 
-from dvsim.flow.one_shot import OneShotCfg
+from dvsim.flow.one_shot import OneShotCfg, OneShotFlowConfig
 from dvsim.job.data import CompletedJobStatus
 from dvsim.logging import log
 from dvsim.msg_buckets import MsgBuckets
 from dvsim.utils import check_bool, subst_wildcards
+
+
+class LintFlowConfig(OneShotFlowConfig):
+    """Schema for a lint flow config."""
+
+    model_config = ConfigDict(extra="allow")
+
+    # TODO: check whether this can be replaced with the subflow concept.
+    is_style_lint: str | bool = ""
+    """Whether the flow is for a style lint run."""
+    report_severities: list[str] = Field(default_factory=list)
+    """Which message severities to print into report summaries."""
+    fail_severities: list[str] = Field(default_factory=list)
+    """Which message severities lead to a pass/fail."""
+    message_buckets: list[dict] = Field(default_factory=list)
+    """Message bucket configuration: [{category, severity, label}, ...]."""
+    additional_fusesoc_argument: str = ""
+    """Wildcard placing an extra fusesoc argument before the core name."""
 
 
 class LintCfg(OneShotCfg):
@@ -21,25 +41,9 @@ class LintCfg(OneShotCfg):
 
     flow = "lint"
 
-    def __init__(self, flow_cfg_file, hjson_data, args) -> None:
-        # TODO: check whether this can be replaced with the subflow concept.
-        # This determines whether the flow is for a style lint run.
-        # Format: bool
-        self.is_style_lint = ""
-        # Determines which message severities to print into report summaries
-        # Format: [str, ...]
-        self.report_severities = []
-        # Determines which message severities lead to a pass/fail
-        # Format: [str, ...]
-        self.fail_severities = []
-        # Message bucket format configuration
-        # Format: [{category: str, severity: str,  label: str}, ...]
-        self.message_buckets = []
-        # This key is used as a wildcard to place an additional
-        # fusesoc argument before the name of the core to invoke.
-        # Format: str
-        self.additional_fusesoc_argument = ""
+    config_model: ClassVar[type[OneShotFlowConfig]] = LintFlowConfig
 
+    def __init__(self, flow_cfg_file, hjson_data, args) -> None:
         super().__init__(flow_cfg_file, hjson_data, args)
 
         if self.is_style_lint == "":
