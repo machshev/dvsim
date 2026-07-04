@@ -36,7 +36,6 @@ from dvsim.instrumentation.factory import InstrumentationFactory
 from dvsim.instrumentation.runtime import set_instrumentation
 from dvsim.job.deploy import RunTest
 from dvsim.launcher.base import Launcher
-from dvsim.launcher.lsf import LsfLauncher
 from dvsim.launcher.nc import NcLauncher
 from dvsim.launcher.slurm import SlurmLauncher
 from dvsim.logging import LOG_LEVELS, configure_logging, log
@@ -975,7 +974,6 @@ def main(argv: list[str] | None = None) -> None:
     # Register the common deploy settings.
     StatusPrinter.print_interval = args.print_interval
     SlurmLauncher.max_parallel = args.max_parallel
-    LsfLauncher.max_parallel = args.max_parallel
     NcLauncher.max_parallel = args.max_parallel
     Launcher.max_odirs = args.max_odirs
     RuntimeBackend.max_output_dirs = args.max_odirs
